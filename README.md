@@ -5,23 +5,22 @@
 [![Zero Knowledge](https://img.shields.io/badge/ZK-Groth16--BN254-00f2fe.svg)](https://circom.io)
 [![Circom](https://img.shields.io/badge/Circuit-Circom_2.1-orange.svg)](https://docs.circom.io)
 [![TON Ecosystem](https://img.shields.io/badge/TON-Smart_Contracts-0088cc.svg)](https://ton.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 `zk-tele-auth` allows Web3 users to log into dApps and verify Telegram identity attestations (such as Telegram Premium status, account age, or private channel membership) **without disclosing their numeric Telegram User ID, username, or phone number** to the dApp frontend or on-chain smart contracts.
 
 ---
 
-## ✨ Key Features & Advantages
+## Key Features & Advantages
 
-- 🛡️ **Zero-Knowledge User Anonymity**: Proves ownership of valid Telegram credentials via Groth16 ZK-SNARKs without revealing identity metadata.
-- 🔑 **Deterministic Anonymous Nullifier**: Generates a domain-specific nullifier hash (`hash(userId, appDomain, salt)`), preventing double-registration or Sybil attacks while keeping users completely un-linkable across different dApps.
-- ⚡ **Telegram Premium & Membership Attestation**: Prove Telegram Premium membership or private channel inclusion via Merkle tree proofs.
-- 💎 **TON On-Chain Verifier (Tolk 1.2)**: On-chain Groth16 Snark verifier smart contract allowing TON dApps to verify Telegram membership proofs directly on-chain.
-- 🌐 **Client-Side Proof Generation**: Proofs are generated locally on the user's client device (SnarkJS / Browser WebApp) so private keys and tokens never leave the device.
+- **Zero-Knowledge User Anonymity**: Proves ownership of valid Telegram credentials via Groth16 ZK-SNARKs without revealing identity metadata.
+- **Deterministic Anonymous Nullifier**: Generates a domain-specific nullifier hash (`hash(userId, appDomain, salt)`), preventing double-registration or Sybil attacks while keeping users completely un-linkable across different dApps.
+- **Telegram Premium & Membership Attestation**: Prove Telegram Premium membership or private channel inclusion via Merkle tree proofs.
+- **TON On-Chain Verifier (Tolk 1.2)**: On-chain Groth16 Snark verifier smart contract allowing TON dApps to verify Telegram membership proofs directly on-chain.
+- **Client-Side Proof Generation**: Proofs are generated locally on the user's client device (SnarkJS / Browser WebApp) so private keys and tokens never leave the device.
 
 ---
 
-## 🏗️ System Architecture & Protocol Flow
+## System Architecture & Protocol
 
 ```
 ┌────────────────────────────────┐
@@ -46,7 +45,7 @@
 
 ---
 
-## 📦 Project Structure
+## Project Structure
 
 ```
 zk-tele-auth/
@@ -76,7 +75,7 @@ zk-tele-auth/
 
 ---
 
-## 🚀 Quick Start & Usage
+## Quick Start & Usage
 
 ### 1. Installation
 
@@ -113,6 +112,3 @@ if (verification.isValid) {
 
 ---
 
-## 📄 License
-
-MIT License © 2026 ef-code.
