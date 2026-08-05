@@ -1,0 +1,26 @@
+{
+  "name": "zk-tele-auth",
+  "version": "1.0.0",
+  "description": "Zero-Knowledge Authentication & Identity Attestation Protocol for Telegram and Web3 dApps",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node scripts/run-tests.js",
+    "compile-circuits": "node scripts/compile-circuits.js"
+  },
+  "keywords": [
+    "zero-knowledge",
+    "zk-snark",
+    "circom",
+    "groth16",
+    "telegram",
+    "web3",
+    "ton",
+    "oauth",
+    "privacy",
+    "nullifier"
+  ],
+  "author": "ef-code",
+  "license": "MIT"
+}
