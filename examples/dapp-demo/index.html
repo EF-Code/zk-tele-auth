@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>zk-tele-auth Demo | Anonymous Telegram Web3 Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="glass-container">
+    <header class="header">
+      <div class="logo">🔒 zk-tele-auth</div>
+      <div class="badge">Groth16 Zero-Knowledge</div>
+    </header>
+
+    <main class="content">
+      <h1>Private Telegram OAuth for Web3</h1>
+      <p class="subtitle">Log into dApps using Telegram without revealing your User ID, phone number, or handle.</p>
+
+      <div class="card auth-box" id="authBox">
+        <div class="step-title">1. Generate Local ZK Proof</div>
+        <button class="btn btn-primary" id="loginBtn">
+          <span>🚀 Log In via Anonymous ZK Telegram</span>
+        </button>
+
+        <div class="status-box hidden" id="statusBox">
+          <div class="spinner"></div>
+          <span id="statusText">Generating Groth16 ZK-SNARK Proof...</span>
+        </div>
+      </div>
+
+      <div class="card result-card hidden" id="resultCard">
+        <h2>🎉 Anonymous Login Successful</h2>
+        
+        <div class="field">
+          <label>Deterministic Anonymous Nullifier Hash:</label>
+          <div class="code-box" id="nullifierVal">--</div>
+          <small>Unique to this dApp domain. Proves identity without exposing your Telegram ID.</small>
+        </div>
+
+        <div class="field">
+          <label>Verified ZK Attestations:</label>
+          <ul class="check-list">
+            <li>✅ Authentic Telegram HMAC Signature Verified</li>
+            <li>✅ Account Token Freshness Verified (< 24h)</li>
+            <li>✅ Telegram Premium Status Verified via ZK Circuit</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-secondary" id="resetBtn">Log Out Session</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
