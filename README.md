@@ -1,4 +1,4 @@
-# 🔒 `zk-tele-auth` (Private Telegram OAuth for Web3)
+# `zk-tele-auth` (Private Telegram OAuth)
 
 > **Zero-Knowledge Authentication & Identity Attestation Protocol for Telegram & Web3 dApps**
 
