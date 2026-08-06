@@ -1,25 +1,37 @@
-import { crypto } from './crypto-utils.js';
+import { CryptoUtils, PoseidonUtils } from './crypto-utils.js';
 
+/**
+ * Nullifier derivation, kept in lockstep with `circuits/hasher.circom`
+ * (`PoseidonNullifier`).
+ *
+ *     nullifierHash = Poseidon(userId, appDomainHash, salt)
+ *
+ * The userId stays private inside the circuit; only the nullifier is ever
+ * revealed. Mixing appDomainHash into the hash guarantees the same Telegram
+ * account yields a *different* nullifier per dApp, so a user cannot be
+ * correlated across applications (unlinkability) and cannot be double-counted
+ * within one dApp (Sybil resistance).
+ */
 export class NullifierDeriver {
   /**
-   * Derive a deterministic anonymous nullifier hash from userId and appDomain
-   * @param userId Telegram numeric User ID
-   * @param appDomain Target Web3 dApp domain (e.g. "mydapp.io")
-   * @param salt Optional secret salt
-   * @returns 64-character hex string representing nullifier hash
+   * Domain commitment fed to the circuit as the public `appDomainHash`.
+   * A Poseidon fold of the 256-bit SHA-256 digest of the normalized domain.
    */
-  static deriveNullifier(userId: number, appDomain: string, salt: string = 'zk-tele-auth-v1'): string {
-    const raw = `${userId}:${appDomain.toLowerCase().trim()}:${salt}`;
-    return crypto.sha256(raw);
+  static async hashAppDomain(appDomain: string): Promise<string> {
+    const normalized = appDomain.toLowerCase().trim();
+    return PoseidonUtils.fieldElementFromHex(CryptoUtils.sha256(normalized));
   }
 
   /**
-   * Derive domain hash for circuit public signals
-   * @param appDomain
-   * @returns BigInt string representation
+   * Derive the anonymous nullifier for (user, domain, salt).
+   * @returns decimal string field element (matches circuit public signal [0])
    */
-  static hashAppDomain(appDomain: string): string {
-    const hex = crypto.sha256(appDomain.toLowerCase().trim());
-    return BigInt('0x' + hex.substring(0, 16)).toString();
+  static async deriveNullifier(
+    userId: number | string,
+    appDomain: string,
+    salt: string
+  ): Promise<string> {
+    const appDomainHash = BigInt(await NullifierDeriver.hashAppDomain(appDomain));
+    return PoseidonUtils.hash([BigInt(userId), appDomainHash, BigInt(salt)]);
   }
 }
