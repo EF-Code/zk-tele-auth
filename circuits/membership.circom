@@ -62,7 +62,8 @@ template MerkleMembershipVerifier(levels) {
 }
 
 /*
- * Concrete instance used for setup/proving. Depth 20 supports up to 2^20
- * (1,048,576) member leaves.
+ * Concrete instance used for setup/proving. Depth 15 supports up to 2^15
+ * (32,768) member leaves — ample for a private Telegram channel while keeping
+ * the powers-of-tau and proving-key setup efficient.
  */
-component main {public [leaf, root]} = MerkleMembershipVerifier(20);
+component main {public [leaf, root]} = MerkleMembershipVerifier(15);
