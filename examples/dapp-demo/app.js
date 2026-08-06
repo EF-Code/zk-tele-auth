@@ -14,20 +14,22 @@ document.addEventListener('DOMContentLoaded', () => {
     statusBox.classList.remove('hidden');
 
     try {
-      // Simulated Telegram WebApp user payload
-      const mockUserId = 987654321;
+      // In a real deployment the Telegram MiniApp injects the authenticated
+      // user via initData (see src/sdk/initdata-parser.ts); here we simulate
+      // the user payload so the browser demo can run without a bot token.
+      const simulatedUserId = 987654321;
       const appDomain = 'dapp.zk-tele-auth.io';
 
-      // 1. Generate Groth16 Proof locally
+      // 1. Generate a real Groth16 Proof locally (requires committed artifacts)
       const proofPayload = await ZkAuthProofGenerator.generateProof({
-        userId: mockUserId,
+        userId: simulatedUserId,
         authDate: Math.floor(Date.now() / 1000) - 300,
         isPremium: true,
         appDomain,
         currentTimestamp: Math.floor(Date.now() / 1000)
       });
 
-      // 2. Verify Proof
+      // 2. Verify Proof (real snarkjs pairing check)
       const verification = await ZkAuthProofVerifier.verifyProof(proofPayload, appDomain);
 
       if (verification.isValid) {
