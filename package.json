@@ -2,8 +2,8 @@
   "name": "zk-tele-auth",
   "version": "1.0.0",
   "description": "Zero-Knowledge Authentication & Identity Attestation Protocol for Telegram and Web3 dApps",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/sdk/index.js",
+  "types": "dist/sdk/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node scripts/run-tests.mjs",
