@@ -7,12 +7,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Project-relative artifacts root: `<repo>/artifacts`.
+ * Resolved from this module at `<repo>/dist/sdk/artifacts.js` (two levels up).
  * Overridable via the ZK_TELE_AUTH_ARTIFACTS_DIR env var or explicit options.
  */
 function defaultArtifactsDir(): string {
   return (
     process.env.ZK_TELE_AUTH_ARTIFACTS_DIR ||
-    path.resolve(here, '..', '..', '..', 'artifacts')
+    path.resolve(here, '..', '..', 'artifacts')
   );
 }
 
