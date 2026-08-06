@@ -5,10 +5,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node scripts/build.js",
-    "test": "node scripts/run-tests.js",
-    "setup:circuits": "node scripts/setup-circuits.js",
-    "compile-circuits": "node scripts/compile-circuits.js"
+    "build": "tsc -p tsconfig.json",
+    "test": "node scripts/run-tests.mjs",
+    "setup:circuits": "node scripts/setup-circuits.cjs",
+    "compile-circuits": "node scripts/setup-circuits.cjs"
   },
   "keywords": [
     "zero-knowledge",
@@ -26,9 +26,14 @@
   "license": "MIT",
   "dependencies": {
     "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
     "snarkjs": "^0.7.6"
   },
   "devDependencies": {
-    "export-ton-verifier": "^3.0.2"
-  }
+    "@ton/tolk-js": "^1.4.2",
+    "@types/node": "^26.1.2",
+    "export-ton-verifier": "^3.0.2",
+    "typescript": "^7.0.2"
+  },
+  "type": "module"
 }
