@@ -1,10 +1,10 @@
 node_modules/
 dist/
 build/
+circuits/compiled/
 *.log
 .DS_Store
 .env
 .env.*
-circuits/compiled/
-*.zkey
-*.r1cs
+*.ptau
+build/**
