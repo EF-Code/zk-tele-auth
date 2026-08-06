@@ -1,6 +1,6 @@
 pragma circom 2.1.6;
 
-include "../node_modules/circomlib/circuits/poseidon.circom";
+include "../node_modules/poseidon-bls12381-circom/circuits/poseidon255.circom";
 include "../node_modules/circomlib/circuits/mux1.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
 
@@ -36,7 +36,7 @@ template MerkleMembershipVerifier(levels) {
     for (var i = 0; i < levels; i++) {
         muxL[i] = Mux1();
         muxR[i] = Mux1();
-        hashers[i] = Poseidon(2);
+        hashers[i] = Poseidon255(2);
     }
 
     for (var i = 0; i < levels; i++) {
@@ -48,8 +48,8 @@ template MerkleMembershipVerifier(levels) {
         muxR[i].c[1] <== hashes[i];
         muxR[i].s <== pathIndices[i];
 
-        hashers[i].inputs[0] <== muxL[i].out;
-        hashers[i].inputs[1] <== muxR[i].out;
+        hashers[i].in[0] <== muxL[i].out;
+        hashers[i].in[1] <== muxR[i].out;
         hashes[i + 1] <== hashers[i].out;
     }
 
@@ -62,8 +62,10 @@ template MerkleMembershipVerifier(levels) {
 }
 
 /*
- * Concrete instance used for setup/proving. Depth 15 supports up to 2^15
- * (32,768) member leaves — ample for a private Telegram channel while keeping
- * the powers-of-tau and proving-key setup efficient.
+ * Concrete instance used for setup/proving. Depth 12 supports up to 2^12
+ * (4,096) member leaves — ample for a private Telegram channel whitelist —
+ * while keeping the powers-of-tau (2^14) and proving-key setup efficient.
+ * The depth is a compile-time constant: increasing it trades more on-chain
+ * verifier constraints against a larger member set.
  */
-component main {public [leaf, root]} = MerkleMembershipVerifier(15);
+component main {public [leaf, root]} = MerkleMembershipVerifier(12);

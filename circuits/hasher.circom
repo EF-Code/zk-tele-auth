@@ -1,14 +1,14 @@
 pragma circom 2.1.6;
 
-include "../node_modules/circomlib/circuits/poseidon.circom";
 include "../node_modules/circomlib/circuits/comparators.circom";
+include "../node_modules/poseidon-bls12381-circom/circuits/poseidon255.circom";
 
 /*
  * Poseidon-based nullifier derivation.
  *
  * Computes a deterministic, domain-separated anonymous identifier:
  *
- *     nullifierHash = Poseidon(userId, appDomainHash, salt)
+ *     nullifierHash = Poseidon255(userId, appDomainHash, salt)
  *
  * The userId is kept private so that dApps and on-chain contracts can only
  * observe the nullifier, never the raw Telegram account. Because appDomainHash
@@ -28,10 +28,10 @@ template PoseidonNullifier() {
     userIdNonZero.in <== userId;
     userIdNonZero.out === 0;
 
-    component hash = Poseidon(3);
-    hash.inputs[0] <== userId;
-    hash.inputs[1] <== appDomainHash;
-    hash.inputs[2] <== salt;
+    component hash = Poseidon255(3);
+    hash.in[0] <== userId;
+    hash.in[1] <== appDomainHash;
+    hash.in[2] <== salt;
     nullifierHash <== hash.out;
 }
 
