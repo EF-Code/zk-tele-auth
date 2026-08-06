@@ -6,6 +6,7 @@
   "types": "dist/sdk/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
     "test": "node scripts/run-tests.mjs",
     "setup:circuits": "node scripts/setup-circuits.cjs",
     "compile-circuits": "node scripts/setup-circuits.cjs"
