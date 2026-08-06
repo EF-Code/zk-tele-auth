@@ -1,0 +1,14 @@
+{
+  "name": "telegram_auth",
+  "power": 14,
+  "prime": "bls12381",
+  "constraints": 922,
+  "publicInputs": 6,
+  "vkeySha256": "e9ba7fe4a78f1943302d1b77846447e88a4bb59b13544b78a6ce964127b0fd18",
+  "artifacts": {
+    "r1cs": "telegram_auth.r1cs",
+    "wasm": "telegram_auth.wasm",
+    "zkey": "telegram_auth_final.zkey",
+    "vkey": "telegram_auth_vkey.json"
+  }
+}
