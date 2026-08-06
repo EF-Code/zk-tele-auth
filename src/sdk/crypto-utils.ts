@@ -20,7 +20,7 @@ export class CryptoUtils {
 
   /**
    * Generate a cryptographically random salt as a decimal field element
-   * (< 2^224) safe for the BN254 scalar field.
+   * (< 2^224) safe for the BLS12-381 scalar field.
    */
   static randomSalt(): string {
     const bytes = cryptoNode.randomBytes(28);
@@ -29,11 +29,11 @@ export class CryptoUtils {
 }
 
 /**
- * Poseidon hashing helpers over the BN254 scalar field, kept in sync with the
- * circom circuits in ./circuits.
+ * Poseidon hashing helpers over the BLS12-381 scalar field, kept in sync with
+ * the circom circuits in ./circuits.
  */
 export const PoseidonUtils = {
-  /** Poseidon over BN254 scalar field. */
+  /** Poseidon over the BLS12-381 scalar field. */
   hash: poseidonHash,
   /** Canonical field element from a hex digest (used for domain hashing). */
   fieldElementFromHex,

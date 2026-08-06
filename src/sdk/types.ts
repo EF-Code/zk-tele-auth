@@ -40,7 +40,7 @@ export interface ZkAuthProofInputs {
 
 /**
  * Result of `groth16.fullProve` / accepted by `groth16.verify`.
- * Coordinates are decimal or hex strings in the BN254 field.
+ * Coordinates are decimal or hex strings in the BLS12-381 field.
  */
 export interface Groth16Proof {
   pi_a: string[];
