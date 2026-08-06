@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node scripts/run-tests.js",
+    "setup:circuits": "node scripts/setup-circuits.js",
     "compile-circuits": "node scripts/compile-circuits.js"
   },
   "keywords": [
@@ -22,5 +23,12 @@
     "nullifier"
   ],
   "author": "ef-code",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.6"
+  },
+  "devDependencies": {
+    "export-ton-verifier": "^3.0.2"
+  }
 }
