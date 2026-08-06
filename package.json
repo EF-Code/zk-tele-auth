@@ -26,7 +26,8 @@
   "license": "MIT",
   "dependencies": {
     "circomlib": "^2.0.5",
-    "circomlibjs": "^0.1.7",
+    "poseidon-bls12381": "1.0.2",
+    "poseidon-bls12381-circom": "1.0.0",
     "snarkjs": "^0.7.6"
   },
   "devDependencies": {

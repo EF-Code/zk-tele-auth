@@ -1,55 +1,42 @@
-import { buildPoseidon, buildPoseidonWasm } from 'circomlibjs';
-import { Scalar } from 'ffjavascript';
-
-let cached: Promise<ReturnType<typeof buildPoseidon>> | null = null;
+import * as blsPoseidon from 'poseidon-bls12381';
 
 /**
- * Lazily build (and cache) a Poseidon hash instance over the BN254 scalar
- * field, using the exact same constants and round structure as circomlib's
- * `poseidon.circom` (t = nInputs + 1, 8 full + R_P partial rounds).
+ * Poseidon hash over the BLS12-381 scalar field (255-bit Fr), using the
+ * official reference constants (128-bit security) from jmagan's
+ * `poseidon-bls12381` package.
  *
- * The circuit side computes the same values, which the test suite asserts by
- * comparing JS-derived nullifiers against circuit public signals.
+ * The circom side is `Poseidon255(nInputs)` from `poseidon-bls12381-circom`,
+ * which uses the exact same constants and round structure, so JS-derived
+ * hashes are identical to circuit outputs over `--prime bls12381`.
  */
-export async function getPoseidon() {
-  if (!cached) {
-    cached = buildPoseidonWasm ? buildPoseidonWasm() : buildPoseidon();
-    // warm up so the first hash call does not pay the init cost
-    await cached;
+export function poseidon(inputs: (bigint | number | string)[]): bigint {
+  const arity = inputs.length;
+  if (arity < 1 || arity > 16) {
+    throw new Error(`poseidon supports 1..16 inputs, got ${arity}`);
   }
-  return cached;
-}
-
-export interface Poseidon {
-  (inputs: (bigint | number | string)[]): bigint;
-  F: {
-    toString(x: bigint): string;
-    fromObject?(): unknown;
-    e?: unknown;
-  };
-}
-
-/**
- * Poseidon hash over BN254 scalar field.
- * @param inputs field elements (auto-reduced to the scalar field)
- * @returns decimal string of the hash output
- */
-export async function poseidonHash(inputs: (bigint | number | string)[]): Promise<string> {
-  const poseidon = await getPoseidon();
   const values = inputs.map((v) => BigInt(v));
   for (const v of values) {
     if (v < 0n) throw new Error('poseidon inputs must be non-negative');
   }
-  const out = poseidon(values);
-  return Scalar.toString(out, 10);
+  const fn = (blsPoseidon as unknown as Record<string, (i: bigint[]) => bigint>)[`poseidon${arity}`];
+  return fn(values);
+}
+
+/**
+ * Poseidon hash over the BLS12-381 scalar field.
+ * @param inputs field elements (auto-reduced to the scalar field)
+ * @returns decimal string of the hash output
+ */
+export function poseidonHash(inputs: (bigint | number | string)[]): string {
+  return poseidon(inputs).toString();
 }
 
 /**
  * Derive a canonical field element for a message from its hex digest.
- * Splits the hex into two chunks that fit comfortably inside the 254-bit
+ * Splits the hex into two chunks that fit comfortably inside the 255-bit
  * scalar field (248 bits + 8 bits), then folds them with one Poseidon call.
  */
-export async function fieldElementFromHex(hex: string): Promise<string> {
+export function fieldElementFromHex(hex: string): string {
   const clean = hex.replace(/^0x/, '');
   if (clean.length !== 64) throw new Error(`expected 64 hex chars, got ${clean.length}`);
   const lo = BigInt('0x' + clean.slice(0, 62));
