@@ -34,8 +34,8 @@ const ptauDir = path.join(root, 'build', 'ptau');
 const artifactsDir = path.join(root, 'artifacts');
 
 const CIRCUITS = [
-  { name: 'telegram_auth', prime: 'bn128', power: 14 },
-  { name: 'membership', prime: 'bn128', power: 14 },
+  { name: 'telegram_auth', prime: 'bls12381', power: 14 },
+  { name: 'membership', prime: 'bls12381', power: 14 },
 ];
 
 const DEFAULT_ENTROPY = 'zk-tele-auth v1 local dev setup';
@@ -72,7 +72,7 @@ function compileCircuit(circomBin, circuit) {
   logger.log(`compiling ${circuit.name}.circom ...`);
   execFileSync(
     circomBin,
-    [path.join(root, 'circuits', `${circuit.name}.circom`), '-o', outDir, '--r1cs', '--wasm', '--sym'],
+    [path.join(root, 'circuits', `${circuit.name}.circom`), '--prime', 'bls12381', '-o', outDir, '--r1cs', '--wasm', '--sym'],
     { stdio: ['ignore', 'inherit', 'inherit'] }
   );
   const r1cs = path.join(outDir, `${circuit.name}.r1cs`);
@@ -113,7 +113,9 @@ async function setupCircuit(circuitDef, ptau) {
   const wasm = path.join(srcDir, `${circuit}_js`, `${circuit}.wasm`);
 
   const zkey = path.join(srcDir, `${circuit}_final.zkey`);
-  if (!fs.existsSync(zkey)) {
+  if (fs.existsSync(zkey) && process.env.ZK_TAU_REUSE === '1') {
+    logger.log(`reusing existing zkey for ${circuit}`);
+  } else {
     const zkeyInit = path.join(srcDir, `${circuit}_init.zkey`);
     logger.log(`groth16 setup for ${circuit} ...`);
     await snarkjs.zKey.newZKey(r1cs, ptau, zkeyInit, logger);
@@ -125,8 +127,6 @@ async function setupCircuit(circuitDef, ptau) {
     logger.log(`finalizing ${circuit} with deterministic beacon ...`);
     await snarkjs.zKey.beacon(zkeyInit, zkey, 'zk-tele-auth beacon', beaconHash, 10, logger);
     fs.unlinkSync(zkeyInit);
-  } else {
-    logger.log(`reusing existing zkey for ${circuit}`);
   }
 
   const vkey = await snarkjs.zKey.exportVerificationKey(zkey, logger);
@@ -164,6 +164,16 @@ async function main() {
   logger.log(`using circom: ${circomBin}`);
 
   ensureDir(buildDir);
+  ensureDir(ptauDir);
+
+  // Wipe previous per-circuit outputs so stale artifacts from another prime or
+  // an older circuit revision can never leak into ./artifacts. Set
+  // ZK_TAU_REUSE=1 to keep and skip re-running phase 2.
+  if (process.env.ZK_TAU_REUSE !== '1') {
+    for (const circuitDef of CIRCUITS) {
+      fs.rmSync(path.join(buildDir, circuitDef.name), { recursive: true, force: true });
+    }
+  }
 
   const compiled = [];
   for (const circuitDef of CIRCUITS) {
@@ -177,7 +187,7 @@ async function main() {
     throw new Error(`ZK_TAU_POWER=${power} is too small; need at least ${requiredPower}`);
   }
 
-  const ptau = await ensurePtau(power, 'bn128');
+  const ptau = await ensurePtau(power, 'bls12381');
 
   for (const circuitDef of CIRCUITS) {
     circuitDef.power = power;
