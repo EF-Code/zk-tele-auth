@@ -7,6 +7,7 @@ export const TELEGRAM_AUTH_PUBLIC_SIGNALS = [
   'currentTimestamp',
   'maxTokenAgeSec',
   'isPremiumRequired',
+  'issuerKeyHash',
 ] as const;
 
 export type TelegramAuthPublicSignal = (typeof TELEGRAM_AUTH_PUBLIC_SIGNALS)[number];
@@ -18,6 +19,21 @@ export interface ParsedPublicSignals {
   currentTimestamp: number;
   maxTokenAgeSec: number;
   isPremiumRequired: boolean;
+  issuerKeyHash: string;
+}
+
+function parseSafeInteger(value: string, name: string): number {
+  if (!/^(0|[1-9][0-9]*)$/.test(value)) {
+    throw new Error(`${name} must be a canonical non-negative integer`);
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) throw new Error(`${name} exceeds JavaScript safe-integer range`);
+  return parsed;
+}
+
+function parseBoolean(value: string, name: string): boolean {
+  if (value !== '0' && value !== '1') throw new Error(`${name} must be 0 or 1`);
+  return value === '1';
 }
 
 /**
@@ -33,15 +49,19 @@ export function parseTelegramAuthPublicSignals(publicSignals: string[]): ParsedP
   }
   return {
     nullifierHash: publicSignals[0],
-    isVerified: publicSignals[1] === '1',
+    isVerified: parseBoolean(publicSignals[1], 'isVerified'),
     appDomainHash: publicSignals[2],
-    currentTimestamp: Number(publicSignals[3]),
-    maxTokenAgeSec: Number(publicSignals[4]),
-    isPremiumRequired: publicSignals[5] === '1',
+    currentTimestamp: parseSafeInteger(publicSignals[3], 'currentTimestamp'),
+    maxTokenAgeSec: parseSafeInteger(publicSignals[4], 'maxTokenAgeSec'),
+    isPremiumRequired: parseBoolean(publicSignals[5], 'isPremiumRequired'),
+    issuerKeyHash: publicSignals[6],
   };
 }
 
 export function assertFreshTimestamp(timestamp: number, maxTokenAgeSec: number, skewSec = 300): void {
+  if (!Number.isSafeInteger(timestamp) || timestamp < 0) throw new Error('invalid proof timestamp');
+  if (!Number.isSafeInteger(maxTokenAgeSec) || maxTokenAgeSec <= 0) throw new Error('invalid token age policy');
+  if (!Number.isSafeInteger(skewSec) || skewSec < 0) throw new Error('invalid clock skew policy');
   const now = Math.floor(Date.now() / 1000);
   if (timestamp > now + skewSec) {
     throw new Error('proof timestamp is in the future (clock skew or replay attempt)');
@@ -67,6 +87,7 @@ export function buildPayload(
     timestamp: parsed.currentTimestamp,
     maxTokenAgeSec: parsed.maxTokenAgeSec,
     isPremiumRequired: parsed.isPremiumRequired,
+    issuerKeyHash: parsed.issuerKeyHash,
     isVerified: parsed.isVerified,
   };
 }

@@ -18,8 +18,8 @@ include "../node_modules/circomlib/circuits/comparators.circom";
  *   - pathIndices[i] == 0  -> hash(hashes[i], pathElements[i])
  *   - pathIndices[i] == 1  -> hash(pathElements[i], hashes[i])
  *
- * Public:  leaf, root, isMember
- * Private: pathElements, pathIndices
+ * Public:  root, isMember
+ * Private: leaf, pathElements, pathIndices
  */
 template MerkleMembershipVerifier(levels) {
     signal input leaf;
@@ -40,6 +40,8 @@ template MerkleMembershipVerifier(levels) {
     }
 
     for (var i = 0; i < levels; i++) {
+        pathIndices[i] * (1 - pathIndices[i]) === 0;
+
         muxL[i].c[0] <== hashes[i];
         muxL[i].c[1] <== pathElements[i];
         muxL[i].s <== pathIndices[i];
@@ -58,6 +60,7 @@ template MerkleMembershipVerifier(levels) {
     component rootMatches = IsEqual();
     rootMatches.in[0] <== hashes[levels];
     rootMatches.in[1] <== root;
+    rootMatches.out === 1;
     isMember <== rootMatches.out;
 }
 
@@ -68,4 +71,4 @@ template MerkleMembershipVerifier(levels) {
  * The depth is a compile-time constant: increasing it trades more on-chain
  * verifier constraints against a larger member set.
  */
-component main {public [leaf, root]} = MerkleMembershipVerifier(12);
+component main {public [root]} = MerkleMembershipVerifier(12);

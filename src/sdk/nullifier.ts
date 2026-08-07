@@ -4,13 +4,12 @@ import { CryptoUtils, PoseidonUtils } from './crypto-utils.js';
  * Nullifier derivation, kept in lockstep with `circuits/hasher.circom`
  * (`PoseidonNullifier`).
  *
- *     nullifierHash = Poseidon(userId, appDomainHash, salt)
+ *     nullifierHash = Poseidon(userId, appDomainHash, issuerSecret)
  *
  * The userId stays private inside the circuit; only the nullifier is ever
  * revealed. Mixing appDomainHash into the hash guarantees the same Telegram
- * account yields a *different* nullifier per dApp, so a user cannot be
- * correlated across applications (unlinkability) and cannot be double-counted
- * within one dApp (Sybil resistance).
+ * account yields a different nullifier per dApp. The stable issuer secret keeps
+ * the value deterministic while preventing public user-id enumeration.
  */
 export class NullifierDeriver {
   /**
@@ -23,15 +22,22 @@ export class NullifierDeriver {
   }
 
   /**
-   * Derive the anonymous nullifier for (user, domain, salt).
+   * Derive the anonymous nullifier for (user, domain, issuer secret).
    * @returns decimal string field element (matches circuit public signal [0])
    */
   static async deriveNullifier(
     userId: number | string,
     appDomain: string,
-    salt: string
+    issuerSecret: string
   ): Promise<string> {
     const appDomainHash = BigInt(await NullifierDeriver.hashAppDomain(appDomain));
-    return PoseidonUtils.hash([BigInt(userId), appDomainHash, BigInt(salt)]);
+    return PoseidonUtils.hash([BigInt(userId), appDomainHash, BigInt(issuerSecret)]);
+  }
+
+  /** Public commitment pinned by every verifier for an authorized gateway. */
+  static async deriveIssuerKeyHash(issuerSecret: string): Promise<string> {
+    const secret = BigInt(issuerSecret);
+    if (secret <= 0n) throw new Error('issuer secret must be a positive field element');
+    return PoseidonUtils.hash([secret]);
   }
 }

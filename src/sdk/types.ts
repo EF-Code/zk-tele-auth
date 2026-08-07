@@ -21,7 +21,7 @@ export interface ParsedTelegramUser {
  */
 export interface ZkAuthProofInputs {
   /** Numeric Telegram User ID (kept private inside the circuit). */
-  userId: number;
+  userId: number | string;
   /** initData auth_date (unix seconds), signed by Telegram. */
   authDate: number;
   /** Whether the user holds Telegram Premium. */
@@ -34,8 +34,17 @@ export interface ZkAuthProofInputs {
   maxTokenAgeSec?: number;
   /** True when the verifier demands Telegram Premium. */
   isPremiumRequired?: boolean;
-  /** Optional deterministic salt; a random one is generated when omitted. */
-  salt?: string;
+  /** Stable private field element held only by the authorized gateway issuer. */
+  issuerSecret: string;
+}
+
+/** Policy a relying party must pin independently of prover-controlled signals. */
+export interface ZkAuthVerificationPolicy {
+  expectedAppDomain: string;
+  expectedIssuerKeyHash: string;
+  maxTokenAgeSec: number;
+  requirePremium: boolean;
+  clockSkewSec?: number;
 }
 
 /**
@@ -58,6 +67,7 @@ export interface Groth16Proof {
  *   [3] currentTimestamp
  *   [4] maxTokenAgeSec
  *   [5] isPremiumRequired
+ *   [6] issuerKeyHash
  */
 export interface ZkAuthProofPayload {
   proof: Groth16Proof;
@@ -72,6 +82,8 @@ export interface ZkAuthProofPayload {
   maxTokenAgeSec: number;
   /** Public signal [5]: premium requirement enforced by the circuit. */
   isPremiumRequired: boolean;
+  /** Public signal [6]: commitment to the authorized gateway issuer secret. */
+  issuerKeyHash: string;
   /** Public signal [1]: circuit gate; always "1" for a valid proof. */
   isVerified: boolean;
 }
@@ -80,7 +92,22 @@ export interface VerificationResult {
   isValid: boolean;
   nullifierHash: string;
   appDomainHash?: string;
+  issuerKeyHash?: string;
   error?: string;
+}
+
+export interface MembershipProofInputs {
+  leaf: string;
+  root: string;
+  pathElements: string[];
+  pathIndices: Array<number | string>;
+}
+
+export interface MembershipProofPayload {
+  proof: Groth16Proof;
+  publicSignals: string[];
+  root: string;
+  isMember: boolean;
 }
 
 /** Optional runtime overrides for circuit artifact resolution. */

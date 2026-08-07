@@ -1,13 +1,13 @@
 {
   "name": "zk-tele-auth",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Zero-Knowledge Authentication & Identity Attestation Protocol for Telegram and Web3 dApps",
   "main": "dist/sdk/index.js",
   "types": "dist/sdk/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "tsc -p tsconfig.json",
-    "test": "node scripts/run-tests.mjs",
+    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node tests/ton-contract-tests.mjs",
     "setup:circuits": "node scripts/setup-circuits.cjs",
     "compile-circuits": "node scripts/setup-circuits.cjs"
   },
@@ -26,16 +26,21 @@
   "author": "ef-code",
   "license": "MIT",
   "dependencies": {
+    "@ton/core": "^0.63.1",
     "circomlib": "^2.0.5",
     "poseidon-bls12381": "1.0.2",
     "poseidon-bls12381-circom": "1.0.0",
     "snarkjs": "^0.7.6"
   },
   "devDependencies": {
+    "@ton/sandbox": "^0.44.0",
     "@ton/tolk-js": "^1.4.2",
     "@types/node": "^26.1.2",
     "export-ton-verifier": "^3.0.2",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "underscore": "^1.13.8"
   },
   "type": "module"
 }

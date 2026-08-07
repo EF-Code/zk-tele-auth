@@ -1,5 +1,14 @@
 import * as blsPoseidon from 'poseidon-bls12381';
 
+export const BLS12_381_SCALAR_FIELD =
+  0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001n;
+
+export function assertFieldElement(value: bigint, name = 'value'): void {
+  if (value < 0n || value >= BLS12_381_SCALAR_FIELD) {
+    throw new Error(`${name} must be a canonical BLS12-381 scalar field element`);
+  }
+}
+
 /**
  * Poseidon hash over the BLS12-381 scalar field (255-bit Fr), using the
  * official reference constants (128-bit security) from jmagan's
@@ -16,7 +25,7 @@ export function poseidon(inputs: (bigint | number | string)[]): bigint {
   }
   const values = inputs.map((v) => BigInt(v));
   for (const v of values) {
-    if (v < 0n) throw new Error('poseidon inputs must be non-negative');
+    assertFieldElement(v, 'poseidon input');
   }
   const fn = (blsPoseidon as unknown as Record<string, (i: bigint[]) => bigint>)[`poseidon${arity}`];
   return fn(values);
@@ -24,7 +33,7 @@ export function poseidon(inputs: (bigint | number | string)[]): bigint {
 
 /**
  * Poseidon hash over the BLS12-381 scalar field.
- * @param inputs field elements (auto-reduced to the scalar field)
+ * @param inputs canonical scalar field elements
  * @returns decimal string of the hash output
  */
 export function poseidonHash(inputs: (bigint | number | string)[]): string {
