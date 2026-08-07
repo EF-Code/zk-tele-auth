@@ -8,20 +8,21 @@ include "../node_modules/poseidon-bls12381-circom/circuits/poseidon255.circom";
  *
  * Computes a deterministic, domain-separated anonymous identifier:
  *
- *     nullifierHash = Poseidon255(userId, appDomainHash, salt)
+ *     nullifierHash = Poseidon255(userId, appDomainHash, issuerSecret)
  *
  * The userId is kept private so that dApps and on-chain contracts can only
  * observe the nullifier, never the raw Telegram account. Because appDomainHash
  * is mixed into the hash, the same user produces a different nullifier per
  * dApp and cannot be correlated across applications.
  *
- * userId is additionally constrained to be non-zero so that the empty/absent
- * user (id = 0) can never produce a valid proof.
+ * The issuer secret is stable and known only to the authenticated gateway. It
+ * simultaneously prevents public Telegram-ID enumeration and makes the
+ * nullifier stable for one issuer/user/domain tuple.
  */
 template PoseidonNullifier() {
     signal input userId;
     signal input appDomainHash;
-    signal input salt;
+    signal input issuerSecret;
     signal output nullifierHash;
 
     component userIdNonZero = IsZero();
@@ -31,8 +32,27 @@ template PoseidonNullifier() {
     component hash = Poseidon255(3);
     hash.in[0] <== userId;
     hash.in[1] <== appDomainHash;
-    hash.in[2] <== salt;
+    hash.in[2] <== issuerSecret;
     nullifierHash <== hash.out;
+}
+
+/*
+ * Proves that the witness includes the secret belonging to the issuer whose
+ * public commitment is pinned by the relying party. Because the proving key
+ * is public, this constraint is the authorization boundary that prevents an
+ * arbitrary caller from minting Telegram claims.
+ */
+template IssuerKeyCommitment() {
+    signal input issuerSecret;
+    signal output issuerKeyHash;
+
+    component secretNonZero = IsZero();
+    secretNonZero.in <== issuerSecret;
+    secretNonZero.out === 0;
+
+    component hash = Poseidon255(1);
+    hash.in[0] <== issuerSecret;
+    issuerKeyHash <== hash.out;
 }
 
 /*

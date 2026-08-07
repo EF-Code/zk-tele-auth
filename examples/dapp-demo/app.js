@@ -1,6 +1,3 @@
-import { ZkAuthProofGenerator } from '../../src/sdk/proof-generator.js';
-import { ZkAuthProofVerifier } from '../../src/sdk/proof-verifier.js';
-
 document.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('loginBtn');
   const statusBox = document.getElementById('statusBox');
@@ -14,33 +11,28 @@ document.addEventListener('DOMContentLoaded', () => {
     statusBox.classList.remove('hidden');
 
     try {
-      // In a real deployment the Telegram MiniApp injects the authenticated
-      // user via initData (see src/sdk/initdata-parser.ts); here we simulate
-      // the user payload so the browser demo can run without a bot token.
-      const simulatedUserId = 987654321;
-      const appDomain = 'dapp.zk-tele-auth.io';
-
-      // 1. Generate a real Groth16 Proof locally (requires committed artifacts)
-      const proofPayload = await ZkAuthProofGenerator.generateProof({
-        userId: simulatedUserId,
-        authDate: Math.floor(Date.now() / 1000) - 300,
-        isPremium: true,
-        appDomain,
-        currentTimestamp: Math.floor(Date.now() / 1000)
-      });
-
-      // 2. Verify Proof (real snarkjs pairing check)
-      const verification = await ZkAuthProofVerifier.verifyProof(proofPayload, appDomain);
-
-      if (verification.isValid) {
-        statusBox.classList.add('hidden');
-        authBox.classList.add('hidden');
-        resultCard.classList.remove('hidden');
-        nullifierVal.textContent = verification.nullifierHash;
-      } else {
-        alert(`Verification failed: ${verification.error}`);
+      const initData = window.Telegram?.WebApp?.initData;
+      if (!initData) {
+        throw new Error('Open this page as a configured Telegram Mini App; initData is missing.');
       }
+
+      const response = await fetch('/authenticate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || `Gateway returned HTTP ${response.status}`);
+      }
+
+      statusBox.classList.add('hidden');
+      authBox.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      nullifierVal.textContent = result.nullifierHash;
     } catch (err) {
+      statusBox.classList.add('hidden');
+      loginBtn.classList.remove('hidden');
       alert(`Error: ${err.message}`);
     }
   });

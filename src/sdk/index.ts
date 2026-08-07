@@ -7,3 +7,5 @@ export * from './artifacts.js';
 export * from './public-signals.js';
 export * from './proof-generator.js';
 export * from './proof-verifier.js';
+export * from './membership.js';
+export * from './ton-storage.js';

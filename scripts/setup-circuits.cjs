@@ -4,7 +4,7 @@
  *
  * Pipeline per circuit:
  *   1. compile        circom <name>.circom -> r1cs / wasm / sym
- *   2. phase 1        powersOfTau (bn128) + contribute + preparePhase2
+ *   2. phase 1        powersOfTau (BLS12-381) + contribute + preparePhase2
  *   3. phase 2        groth16 setup (newZKey) + deterministic beacon finalize
  *   4. export         verification_key.json
  *

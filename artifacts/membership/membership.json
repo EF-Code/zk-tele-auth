@@ -2,9 +2,9 @@
   "name": "membership",
   "power": 14,
   "prime": "bls12381",
-  "constraints": 7515,
-  "publicInputs": 3,
-  "vkeySha256": "a277dd895fbdbbd24777df58454ca20fa4e7a8a4483f02b9bad55b158e679684",
+  "constraints": 7528,
+  "publicInputs": 2,
+  "vkeySha256": "78bcdb7a60756589069a927631b83cfad67ee53845b13af5aa136da812f33c86",
   "artifacts": {
     "r1cs": "membership.r1cs",
     "wasm": "membership.wasm",

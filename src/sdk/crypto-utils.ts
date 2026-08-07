@@ -18,13 +18,20 @@ export class CryptoUtils {
     return cryptoNode.createHmac('sha256', key).update(data).digest('hex');
   }
 
-  /**
-   * Generate a cryptographically random salt as a decimal field element
-   * (< 2^224) safe for the BLS12-381 scalar field.
-   */
-  static randomSalt(): string {
-    const bytes = cryptoNode.randomBytes(28);
-    return BigInt('0x' + bytes.toString('hex')).toString();
+  /** Generate a cryptographically random secret safely inside BLS12-381 Fr. */
+  static randomFieldSecret(): string {
+    let secret = 0n;
+    while (secret === 0n) {
+      secret = BigInt('0x' + cryptoNode.randomBytes(28).toString('hex'));
+    }
+    return secret.toString();
+  }
+
+  static timingSafeHexEqual(left: string, right: string): boolean {
+    if (!/^[0-9a-fA-F]{64}$/.test(left) || !/^[0-9a-fA-F]{64}$/.test(right)) {
+      return false;
+    }
+    return cryptoNode.timingSafeEqual(Buffer.from(left, 'hex'), Buffer.from(right, 'hex'));
   }
 }
 

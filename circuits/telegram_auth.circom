@@ -7,11 +7,11 @@ include "hasher.circom";
  * Main Telegram Private OAuth ZK Circuit (telegram_auth.circom)
  *
  * Proves possession of a valid Telegram WebApp authentication session without
- * revealing the raw Telegram User ID or the per-user salt to the verifier.
+ * revealing the raw Telegram User ID or issuer secret to the verifier.
  *
- * The gateway server first authenticates the initData against the bot token
- * (HMAC-SHA256 off-circuit), then generates this proof so that dApps and TON
- * smart contracts can independently verify the attestation.
+ * The gateway authenticates Telegram initData off-circuit and proves knowledge
+ * of a private issuer secret. Relying parties pin issuerKeyHash, so possession
+ * of the public proving key alone cannot mint an accepted claim.
  *
  * Public Signals:
  *  - nullifierHash       deterministic anonymous identifier for the session
@@ -20,12 +20,13 @@ include "hasher.circom";
  *  - currentTimestamp    unix epoch the proof was issued at
  *  - maxTokenAgeSec      freshness window for authDate
  *  - isPremiumRequired   whether the dApp demands Telegram Premium
+ *  - issuerKeyHash       commitment to the authorized gateway issuer secret
  *
  * Private Inputs:
  *  - userId              numeric Telegram User ID (never revealed)
  *  - authDate            initData auth_date (signed by Telegram)
  *  - isPremium           Telegram Premium membership flag
- *  - salt                per-user random secret mixed into the nullifier
+ *  - issuerSecret        stable gateway secret; never returned or committed raw
  *
  * Security notes:
  *  - Verifiers MUST re-check that currentTimestamp is close to their own clock,
@@ -39,12 +40,13 @@ template TelegramAuthVerifier() {
     signal input currentTimestamp;
     signal input maxTokenAgeSec;
     signal input isPremiumRequired;
+    signal input issuerKeyHash;
 
     // Private Inputs
     signal input userId;
     signal input authDate;
     signal input isPremium;
-    signal input salt;
+    signal input issuerSecret;
 
     // Outputs
     signal output nullifierHash;
@@ -68,21 +70,26 @@ template TelegramAuthVerifier() {
     signal premiumOk;
     premiumOk <== 1 - isPremiumRequired * (1 - isPremium);
 
-    // 3. Derive the domain-separated anonymous nullifier
+    // 3. Bind the proof to the relying party's authorized gateway issuer.
+    component issuer = IssuerKeyCommitment();
+    issuer.issuerSecret <== issuerSecret;
+    issuer.issuerKeyHash === issuerKeyHash;
+
+    // 4. Derive a stable, domain-separated anonymous nullifier.
     component nullifier = PoseidonNullifier();
     nullifier.userId <== userId;
     nullifier.appDomainHash <== appDomainHash;
-    nullifier.salt <== salt;
+    nullifier.issuerSecret <== issuerSecret;
     nullifierHash <== nullifier.nullifierHash;
 
-    // 4. Verify initData freshness
+    // 5. Verify initData freshness
     component age = AgeVerifier();
     age.authDate <== authDate;
     age.currentTimestamp <== currentTimestamp;
     age.maxTokenAgeSec <== maxTokenAgeSec;
 
-    // 5. Overall gate
+    // 6. Overall gate
     isVerified <== premiumOk * age.isValid;
 }
 
-component main {public [appDomainHash, currentTimestamp, maxTokenAgeSec, isPremiumRequired]} = TelegramAuthVerifier();
+component main {public [appDomainHash, currentTimestamp, maxTokenAgeSec, isPremiumRequired, issuerKeyHash]} = TelegramAuthVerifier();

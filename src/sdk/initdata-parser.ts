@@ -10,12 +10,14 @@ export class InitDataParser {
   static parse(initDataQuery: string): { raw: TelegramInitDataRaw; user: ParsedTelegramUser } {
     const params = new URLSearchParams(initDataQuery);
     const hash = params.get('hash') || '';
-    const auth_date = parseInt(params.get('auth_date') || '0', 10);
+    const authDateString = params.get('auth_date') || '';
+    const auth_date = /^(0|[1-9][0-9]*)$/.test(authDateString) ? Number(authDateString) : Number.NaN;
     const userStr = params.get('user') || '{}';
 
     let user: ParsedTelegramUser;
     try {
-      user = JSON.parse(userStr);
+      const decoded = JSON.parse(userStr);
+      user = decoded && typeof decoded === 'object' && !Array.isArray(decoded) ? decoded : { id: 0 };
     } catch {
       user = { id: 0 };
     }
@@ -56,6 +58,6 @@ export class InitDataParser {
     const secretKey = crypto.hmacSha256('WebAppData', botToken);
     const calculatedHash = crypto.hmacSha256Hex(secretKey, dataCheckString);
 
-    return calculatedHash.toLowerCase() === hash.toLowerCase();
+    return crypto.timingSafeHexEqual(calculatedHash, hash);
   }
 }
