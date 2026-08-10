@@ -7,6 +7,8 @@ import {
   buildTonVerifierStateInitData,
   InitDataParser,
   NullifierDeriver,
+  PrivaPurchaseAuthProofGenerator,
+  PrivaPurchaseAuthProofVerifier,
   ZkAuthProofGenerator,
   ZkAuthProofVerifier,
   generateMembershipProof,
@@ -72,6 +74,25 @@ async function run() {
     maxTokenAgeSec: MAX_AGE,
     isPremiumRequired: true,
     issuerSecret: ISSUER_SECRET,
+    ...overrides,
+  });
+  const privaInputs = (overrides = {}) => ({
+    ...proofInputs(),
+    launchIdHash: '101',
+    launchpadAddressHash: '202',
+    recipientHash: '303',
+    clientNonce: '404',
+    expiryEpoch: now + 300,
+    circuitVersion: 1,
+    ...overrides,
+  });
+  const privaPolicy = (overrides = {}) => ({
+    ...policy(),
+    expectedLaunchIdHash: '101',
+    expectedLaunchpadAddressHash: '202',
+    expectedRecipientHash: '303',
+    maxAuthorizationTtlSec: 300,
+    expectedCircuitVersion: 1,
     ...overrides,
   });
 
@@ -239,6 +260,78 @@ async function run() {
     });
     const query = signedInitData(botToken, { id: 778899 }, now - 61);
     await assert.rejects(gateway.handleAuthenticate(query), /expired/);
+  });
+
+  await test('gateway emits a Priva-bound purchase authorization', async () => {
+    const botToken = '123456789:AAHdF6IQAAAAAN0XohDhrOrc';
+    const gateway = new ZkTeleAuthGateway({ botToken, issuerSecret: ISSUER_SECRET, appDomain: DOMAIN });
+    const query = signedInitData(botToken, { id: 778900 }, now);
+    const result = await gateway.handlePrivaPurchaseAuthorization(query, {
+      launchIdHash: '101', launchpadAddressHash: '202', recipientHash: '303',
+      clientNonce: '404', expiryEpoch: now + 60, operation: 'BUY', circuitVersion: 1,
+    });
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.proofPayload.recipientHash, '303');
+  });
+
+  await test('gateway rejects a Priva authorization with a non-BUY operation', async () => {
+    const botToken = '123456789:AAHdF6IQAAAAAN0XohDhrOrc';
+    const gateway = new ZkTeleAuthGateway({ botToken, issuerSecret: ISSUER_SECRET, appDomain: DOMAIN });
+    const query = signedInitData(botToken, { id: 778901 }, now);
+    await assert.rejects(
+      gateway.handlePrivaPurchaseAuthorization(query, {
+        launchIdHash: '101', launchpadAddressHash: '202', recipientHash: '303',
+        clientNonce: '404', expiryEpoch: now + 60, operation: 'SELL',
+      }),
+      /only BUY/
+    );
+  });
+
+  let privaPayload;
+  await test('Priva purchase proof binds a stable identity and one-time action', async () => {
+    privaPayload = await PrivaPurchaseAuthProofGenerator.generateProof(privaInputs());
+    assert.strictEqual(privaPayload.publicSignals.length, 15);
+    assert.strictEqual(privaPayload.isAuthorized, true);
+    assert.strictEqual(privaPayload.launchIdHash, '101');
+    assert.strictEqual(privaPayload.recipientHash, '303');
+    assert.strictEqual(privaPayload.operation, 1);
+  });
+
+  await test('Priva verifier accepts only the exact pinned action policy', async () => {
+    const result = await PrivaPurchaseAuthProofVerifier.verifyProof(privaPayload, privaPolicy());
+    assert.strictEqual(result.isValid, true);
+    assert.strictEqual(result.nullifierHash, privaPayload.identityNullifier);
+  });
+
+  await test('Priva action nonce changes action nullifier but not identity nullifier', async () => {
+    const next = await PrivaPurchaseAuthProofGenerator.generateProof(privaInputs({ clientNonce: '405' }));
+    assert.strictEqual(next.identityNullifier, privaPayload.identityNullifier);
+    assert.notStrictEqual(next.actionNullifier, privaPayload.actionNullifier);
+  });
+
+  await test('Priva verifier rejects a recipient-redirection policy mismatch', async () => {
+    const result = await PrivaPurchaseAuthProofVerifier.verifyProof(
+      privaPayload,
+      privaPolicy({ expectedRecipientHash: '304' })
+    );
+    assert.strictEqual(result.isValid, false);
+    assert.match(result.error, /recipientHash/);
+  });
+
+  await test('Priva verifier rejects a cross-launch policy mismatch', async () => {
+    const result = await PrivaPurchaseAuthProofVerifier.verifyProof(
+      privaPayload,
+      privaPolicy({ expectedLaunchIdHash: '102' })
+    );
+    assert.strictEqual(result.isValid, false);
+    assert.match(result.error, /launchIdHash/);
+  });
+
+  await test('Priva circuit rejects an expired authorization witness', async () => {
+    await assert.rejects(
+      PrivaPurchaseAuthProofGenerator.generateProof(privaInputs({ expiryEpoch: now - 1 })),
+      /expiryEpoch/
+    );
   });
 
   await test('TON StateInit data commits domain, issuer and verifier policy', async () => {

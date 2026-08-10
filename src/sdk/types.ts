@@ -47,6 +47,27 @@ export interface ZkAuthVerificationPolicy {
   clockSkewSec?: number;
 }
 
+/** Inputs for a Priva-bound purchase authorization proof. */
+export interface PrivaPurchaseAuthInputs extends ZkAuthProofInputs {
+  launchIdHash: string;
+  launchpadAddressHash: string;
+  recipientHash: string;
+  clientNonce: string;
+  /** Unix timestamp after which this authorization is invalid. */
+  expiryEpoch: number;
+  /** Priva v1 circuit version; constrained to 1 by the circuit. */
+  circuitVersion?: number;
+}
+
+/** Policy that a Priva relying party must pin independently of the prover. */
+export interface PrivaPurchaseAuthVerificationPolicy extends ZkAuthVerificationPolicy {
+  expectedLaunchIdHash: string;
+  expectedLaunchpadAddressHash: string;
+  expectedRecipientHash: string;
+  maxAuthorizationTtlSec: number;
+  expectedCircuitVersion?: number;
+}
+
 /**
  * Result of `groth16.fullProve` / accepted by `groth16.verify`.
  * Coordinates are decimal or hex strings in the BLS12-381 field.
@@ -94,6 +115,33 @@ export interface VerificationResult {
   appDomainHash?: string;
   issuerKeyHash?: string;
   error?: string;
+}
+
+/**
+ * Public signals layout for `priva_purchase_auth`:
+ * [identityNullifier, actionNullifier, isAuthorized, appDomainHash,
+ *  currentTimestamp, maxTokenAgeSec, isPremiumRequired, issuerKeyHash,
+ *  launchIdHash, launchpadAddressHash, operation, recipientHash, clientNonce,
+ *  expiryEpoch, circuitVersion]
+ */
+export interface PrivaPurchaseAuthProofPayload {
+  proof: Groth16Proof;
+  publicSignals: string[];
+  identityNullifier: string;
+  actionNullifier: string;
+  appDomainHash: string;
+  timestamp: number;
+  maxTokenAgeSec: number;
+  isPremiumRequired: boolean;
+  issuerKeyHash: string;
+  launchIdHash: string;
+  launchpadAddressHash: string;
+  operation: number;
+  recipientHash: string;
+  clientNonce: string;
+  expiryEpoch: number;
+  circuitVersion: number;
+  isAuthorized: boolean;
 }
 
 export interface MembershipProofInputs {

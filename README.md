@@ -4,6 +4,8 @@ Issuer-bound private Telegram authentication for Web3 and TON applications.
 
 The gateway validates Telegram Mini App `initData` with the bot token, then produces a BLS12-381 Groth16 proof. The proof hides the Telegram user ID while binding the claim to an authorized gateway issuer, application domain, freshness policy, and optional Telegram Premium requirement.
 
+For a Priva purchase, use `priva_purchase_auth`, not the generic credential proof. It additionally binds a stable identity nullifier and one-time action nullifier to the launch ID, launchpad, recipient, `BUY` operation, expiry, and circuit version. Its generated Tolk verifier is cryptographic-only and must be composed into the launchpad's state transition; deploying it alone does not enforce caps or replay protection.
+
 ## Security model
 
 Telegram HMAC verification happens off-circuit because the bot token must remain server-side. The gateway is therefore a trusted issuer. The circuit makes that trust independently verifiable by requiring knowledge of a stable private `issuerSecret` whose Poseidon commitment, `issuerKeyHash`, is pinned by every relying party.

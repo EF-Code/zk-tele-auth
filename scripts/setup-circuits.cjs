@@ -35,6 +35,7 @@ const artifactsDir = path.join(root, 'artifacts');
 
 const CIRCUITS = [
   { name: 'telegram_auth', prime: 'bls12381', power: 14 },
+  { name: 'priva_purchase_auth', prime: 'bls12381', power: 14 },
   { name: 'membership', prime: 'bls12381', power: 14 },
 ];
 
