@@ -10,3 +10,4 @@ export * from './proof-verifier.js';
 export * from './priva-purchase.js';
 export * from './membership.js';
 export * from './ton-storage.js';
+export * from './ton-address-binding.js';

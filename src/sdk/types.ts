@@ -50,8 +50,12 @@ export interface ZkAuthVerificationPolicy {
 /** Inputs for a Priva-bound purchase authorization proof. */
 export interface PrivaPurchaseAuthInputs extends ZkAuthProofInputs {
   launchIdHash: string;
-  launchpadAddressHash: string;
-  recipientHash: string;
+  /** High and low 128-bit limbs of a canonical basechain launchpad account ID. */
+  launchpadAddressHi: string;
+  launchpadAddressLo: string;
+  /** High and low 128-bit limbs of the exact recipient account ID. */
+  recipientAddressHi: string;
+  recipientAddressLo: string;
   clientNonce: string;
   /** Unix timestamp after which this authorization is invalid. */
   expiryEpoch: number;
@@ -62,8 +66,10 @@ export interface PrivaPurchaseAuthInputs extends ZkAuthProofInputs {
 /** Policy that a Priva relying party must pin independently of the prover. */
 export interface PrivaPurchaseAuthVerificationPolicy extends ZkAuthVerificationPolicy {
   expectedLaunchIdHash: string;
-  expectedLaunchpadAddressHash: string;
-  expectedRecipientHash: string;
+  expectedLaunchpadAddressHi: string;
+  expectedLaunchpadAddressLo: string;
+  expectedRecipientAddressHi: string;
+  expectedRecipientAddressLo: string;
   maxAuthorizationTtlSec: number;
   expectedCircuitVersion?: number;
 }
@@ -121,8 +127,9 @@ export interface VerificationResult {
  * Public signals layout for `priva_purchase_auth`:
  * [identityNullifier, actionNullifier, isAuthorized, appDomainHash,
  *  currentTimestamp, maxTokenAgeSec, isPremiumRequired, issuerKeyHash,
- *  launchIdHash, launchpadAddressHash, operation, recipientHash, clientNonce,
- *  expiryEpoch, circuitVersion]
+ *  launchIdHash, launchpadAddressHi, launchpadAddressLo, operation,
+ *  recipientAddressHi, recipientAddressLo, clientNonce, expiryEpoch,
+ *  circuitVersion]
  */
 export interface PrivaPurchaseAuthProofPayload {
   proof: Groth16Proof;
@@ -135,9 +142,11 @@ export interface PrivaPurchaseAuthProofPayload {
   isPremiumRequired: boolean;
   issuerKeyHash: string;
   launchIdHash: string;
-  launchpadAddressHash: string;
+  launchpadAddressHi: string;
+  launchpadAddressLo: string;
   operation: number;
-  recipientHash: string;
+  recipientAddressHi: string;
+  recipientAddressLo: string;
   clientNonce: string;
   expiryEpoch: number;
   circuitVersion: number;

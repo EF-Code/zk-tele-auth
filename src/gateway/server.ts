@@ -27,8 +27,10 @@ const CLOCK_SKEW_SEC = 300;
 
 export interface PrivaPurchaseAuthorizationRequest {
   launchIdHash: string;
-  launchpadAddressHash: string;
-  recipientHash: string;
+  launchpadAddressHi: string;
+  launchpadAddressLo: string;
+  recipientAddressHi: string;
+  recipientAddressLo: string;
   clientNonce: string;
   expiryEpoch: number;
   operation: 'BUY';
@@ -179,8 +181,10 @@ export class ZkTeleAuthGateway {
     if (!request || request.operation !== 'BUY') throw new Error('only BUY authorizations are supported');
     for (const [name, value] of Object.entries({
       launchIdHash: request.launchIdHash,
-      launchpadAddressHash: request.launchpadAddressHash,
-      recipientHash: request.recipientHash,
+      launchpadAddressHi: request.launchpadAddressHi,
+      launchpadAddressLo: request.launchpadAddressLo,
+      recipientAddressHi: request.recipientAddressHi,
+      recipientAddressLo: request.recipientAddressLo,
       clientNonce: request.clientNonce,
     })) {
       if (typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value)) {
@@ -217,8 +221,10 @@ export class ZkTeleAuthGateway {
         isPremiumRequired: this.requirePremium,
         issuerSecret: this.issuerSecret,
         launchIdHash: request.launchIdHash,
-        launchpadAddressHash: request.launchpadAddressHash,
-        recipientHash: request.recipientHash,
+        launchpadAddressHi: request.launchpadAddressHi,
+        launchpadAddressLo: request.launchpadAddressLo,
+        recipientAddressHi: request.recipientAddressHi,
+        recipientAddressLo: request.recipientAddressLo,
         clientNonce: request.clientNonce,
         expiryEpoch: request.expiryEpoch,
         circuitVersion: 1,
@@ -229,8 +235,10 @@ export class ZkTeleAuthGateway {
         maxTokenAgeSec: this.maxTokenAgeSec,
         requirePremium: this.requirePremium,
         expectedLaunchIdHash: request.launchIdHash,
-        expectedLaunchpadAddressHash: request.launchpadAddressHash,
-        expectedRecipientHash: request.recipientHash,
+        expectedLaunchpadAddressHi: request.launchpadAddressHi,
+        expectedLaunchpadAddressLo: request.launchpadAddressLo,
+        expectedRecipientAddressHi: request.recipientAddressHi,
+        expectedRecipientAddressLo: request.recipientAddressLo,
         maxAuthorizationTtlSec: this.maxTokenAgeSec,
         expectedCircuitVersion: 1,
       });
