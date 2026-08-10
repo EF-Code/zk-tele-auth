@@ -15,7 +15,9 @@ const generatedPath = path.join(temporaryDir, 'generated.tolk');
 function extractVerifierConstants(source) {
   const match = source.match(/fun PrivaPurchaseAuthVerifier\.create\(\): PrivaPurchaseAuthVerifier \{[\s\S]*?\n\}/);
   if (!match) throw new Error('unable to locate PrivaPurchaseAuthVerifier.create() constants');
-  return match[0].replace(/\r\n/g, '\n');
+  // Acton's formatter may change indentation and line endings, but the
+  // verifier constants themselves must remain byte-for-byte identical.
+  return match[0].replace(/\s+/g, '');
 }
 
 try {

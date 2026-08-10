@@ -13,18 +13,26 @@ import {
 export const PRIVA_PURCHASE_AUTH_PUBLIC_SIGNALS = [
   'identityNullifier', 'actionNullifier', 'isAuthorized', 'appDomainHash',
   'currentTimestamp', 'maxTokenAgeSec', 'isPremiumRequired', 'issuerKeyHash',
-  'launchIdHash', 'launchpadAddressHash', 'operation', 'recipientHash',
-  'clientNonce', 'expiryEpoch', 'circuitVersion',
+  'launchIdHash', 'launchpadAddressHi', 'launchpadAddressLo', 'operation',
+  'recipientAddressHi', 'recipientAddressLo', 'clientNonce', 'expiryEpoch',
+  'circuitVersion',
 ] as const;
 
 const BUY_OPERATION = 1;
 const CIRCUIT_VERSION = 1;
 const MAX_UINT32 = 0xffff_ffff;
+const MAX_UINT128 = (1n << 128n) - 1n;
 
 function parseField(value: string, name: string): string {
   if (!/^(0|[1-9][0-9]*)$/.test(value)) throw new Error(`${name} must be a canonical field element`);
   assertFieldElement(BigInt(value), name);
   return value;
+}
+
+function parseAddressLimb(value: string, name: string): string {
+  const parsed = parseField(value, name);
+  if (BigInt(parsed) > MAX_UINT128) throw new Error(`${name} must fit in 128 bits`);
+  return parsed;
 }
 
 function parseUInt(value: string, name: string): number {
@@ -53,12 +61,14 @@ export function parsePrivaPurchaseAuthPublicSignals(publicSignals: string[]): Om
     isPremiumRequired: parseBit(publicSignals[6], 'isPremiumRequired'),
     issuerKeyHash: parseField(publicSignals[7], 'issuerKeyHash'),
     launchIdHash: parseField(publicSignals[8], 'launchIdHash'),
-    launchpadAddressHash: parseField(publicSignals[9], 'launchpadAddressHash'),
-    operation: parseUInt(publicSignals[10], 'operation'),
-    recipientHash: parseField(publicSignals[11], 'recipientHash'),
-    clientNonce: parseField(publicSignals[12], 'clientNonce'),
-    expiryEpoch: parseUInt(publicSignals[13], 'expiryEpoch'),
-    circuitVersion: parseUInt(publicSignals[14], 'circuitVersion'),
+    launchpadAddressHi: parseAddressLimb(publicSignals[9], 'launchpadAddressHi'),
+    launchpadAddressLo: parseAddressLimb(publicSignals[10], 'launchpadAddressLo'),
+    operation: parseUInt(publicSignals[11], 'operation'),
+    recipientAddressHi: parseAddressLimb(publicSignals[12], 'recipientAddressHi'),
+    recipientAddressLo: parseAddressLimb(publicSignals[13], 'recipientAddressLo'),
+    clientNonce: parseField(publicSignals[14], 'clientNonce'),
+    expiryEpoch: parseUInt(publicSignals[15], 'expiryEpoch'),
+    circuitVersion: parseUInt(publicSignals[16], 'circuitVersion'),
   };
 }
 
@@ -85,9 +95,11 @@ export class PrivaPurchaseAuthProofGenerator {
       isPremiumRequired: inputs.isPremiumRequired ? '1' : '0',
       issuerKeyHash,
       launchIdHash: parseField(inputs.launchIdHash, 'launchIdHash'),
-      launchpadAddressHash: parseField(inputs.launchpadAddressHash, 'launchpadAddressHash'),
+      launchpadAddressHi: parseAddressLimb(inputs.launchpadAddressHi, 'launchpadAddressHi'),
+      launchpadAddressLo: parseAddressLimb(inputs.launchpadAddressLo, 'launchpadAddressLo'),
       operation: String(BUY_OPERATION),
-      recipientHash: parseField(inputs.recipientHash, 'recipientHash'),
+      recipientAddressHi: parseAddressLimb(inputs.recipientAddressHi, 'recipientAddressHi'),
+      recipientAddressLo: parseAddressLimb(inputs.recipientAddressLo, 'recipientAddressLo'),
       clientNonce: parseField(inputs.clientNonce, 'clientNonce'),
       expiryEpoch: String(inputs.expiryEpoch),
       circuitVersion: String(version),
@@ -112,8 +124,8 @@ export class PrivaPurchaseAuthProofVerifier {
       if (parsed.appDomainHash !== await NullifierDeriver.hashAppDomain(policy.expectedAppDomain)) return fail('appDomainHash does not match expected app domain');
       if (parsed.issuerKeyHash !== parseField(policy.expectedIssuerKeyHash, 'expectedIssuerKeyHash')) return fail('issuerKeyHash does not match authorized issuer');
       if (parsed.launchIdHash !== parseField(policy.expectedLaunchIdHash, 'expectedLaunchIdHash')) return fail('launchIdHash does not match policy');
-      if (parsed.launchpadAddressHash !== parseField(policy.expectedLaunchpadAddressHash, 'expectedLaunchpadAddressHash')) return fail('launchpadAddressHash does not match policy');
-      if (parsed.recipientHash !== parseField(policy.expectedRecipientHash, 'expectedRecipientHash')) return fail('recipientHash does not match policy');
+      if (parsed.launchpadAddressHi !== parseAddressLimb(policy.expectedLaunchpadAddressHi, 'expectedLaunchpadAddressHi') || parsed.launchpadAddressLo !== parseAddressLimb(policy.expectedLaunchpadAddressLo, 'expectedLaunchpadAddressLo')) return fail('launchpad address does not match policy');
+      if (parsed.recipientAddressHi !== parseAddressLimb(policy.expectedRecipientAddressHi, 'expectedRecipientAddressHi') || parsed.recipientAddressLo !== parseAddressLimb(policy.expectedRecipientAddressLo, 'expectedRecipientAddressLo')) return fail('recipient address does not match policy');
       if (parsed.maxTokenAgeSec !== policy.maxTokenAgeSec || parsed.isPremiumRequired !== policy.requirePremium) return fail('credential policy does not match verifier policy');
       if (parsed.operation !== BUY_OPERATION) return fail('operation is not BUY');
       if (parsed.circuitVersion !== (policy.expectedCircuitVersion ?? CIRCUIT_VERSION)) return fail('circuitVersion does not match policy');

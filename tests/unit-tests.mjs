@@ -14,6 +14,7 @@ import {
   generateMembershipProof,
   poseidonHash,
   resolveArtifacts,
+  toBasechainAddressLimbs,
   verifyMembershipProof,
 } from '../dist/sdk/index.js';
 import { ZkTeleAuthGateway } from '../dist/gateway/server.js';
@@ -79,8 +80,10 @@ async function run() {
   const privaInputs = (overrides = {}) => ({
     ...proofInputs(),
     launchIdHash: '101',
-    launchpadAddressHash: '202',
-    recipientHash: '303',
+    launchpadAddressHi: '202',
+    launchpadAddressLo: '203',
+    recipientAddressHi: '303',
+    recipientAddressLo: '304',
     clientNonce: '404',
     expiryEpoch: now + 300,
     circuitVersion: 1,
@@ -89,8 +92,10 @@ async function run() {
   const privaPolicy = (overrides = {}) => ({
     ...policy(),
     expectedLaunchIdHash: '101',
-    expectedLaunchpadAddressHash: '202',
-    expectedRecipientHash: '303',
+    expectedLaunchpadAddressHi: '202',
+    expectedLaunchpadAddressLo: '203',
+    expectedRecipientAddressHi: '303',
+    expectedRecipientAddressLo: '304',
     maxAuthorizationTtlSec: 300,
     expectedCircuitVersion: 1,
     ...overrides,
@@ -106,6 +111,13 @@ async function run() {
     const a = await NullifierDeriver.deriveNullifier(987654321, DOMAIN, ISSUER_SECRET);
     const b = await NullifierDeriver.deriveNullifier(987654321, 'other.example', ISSUER_SECRET);
     assert.notStrictEqual(a, b);
+  });
+
+  await test('canonical TON address binding splits a basechain account ID into field-safe limbs', async () => {
+    const limbs = toBasechainAddressLimbs('EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c');
+    assert.strictEqual(limbs.addressHi, '0');
+    assert.strictEqual(limbs.addressLo, '0');
+    assert.throws(() => toBasechainAddressLimbs('-1:0000000000000000000000000000000000000000000000000000000000000000'), /basechain/);
   });
 
   await test('nullifier changes across issuers', async () => {
@@ -267,11 +279,12 @@ async function run() {
     const gateway = new ZkTeleAuthGateway({ botToken, issuerSecret: ISSUER_SECRET, appDomain: DOMAIN });
     const query = signedInitData(botToken, { id: 778900 }, now);
     const result = await gateway.handlePrivaPurchaseAuthorization(query, {
-      launchIdHash: '101', launchpadAddressHash: '202', recipientHash: '303',
+      launchIdHash: '101', launchpadAddressHi: '202', launchpadAddressLo: '203', recipientAddressHi: '303', recipientAddressLo: '304',
       clientNonce: '404', expiryEpoch: now + 60, operation: 'BUY', circuitVersion: 1,
     });
     assert.strictEqual(result.success, true);
-    assert.strictEqual(result.proofPayload.recipientHash, '303');
+    assert.strictEqual(result.proofPayload.recipientAddressHi, '303');
+    assert.strictEqual(result.proofPayload.recipientAddressLo, '304');
   });
 
   await test('gateway rejects a Priva authorization with a non-BUY operation', async () => {
@@ -280,7 +293,7 @@ async function run() {
     const query = signedInitData(botToken, { id: 778901 }, now);
     await assert.rejects(
       gateway.handlePrivaPurchaseAuthorization(query, {
-        launchIdHash: '101', launchpadAddressHash: '202', recipientHash: '303',
+        launchIdHash: '101', launchpadAddressHi: '202', launchpadAddressLo: '203', recipientAddressHi: '303', recipientAddressLo: '304',
         clientNonce: '404', expiryEpoch: now + 60, operation: 'SELL',
       }),
       /only BUY/
@@ -290,10 +303,11 @@ async function run() {
   let privaPayload;
   await test('Priva purchase proof binds a stable identity and one-time action', async () => {
     privaPayload = await PrivaPurchaseAuthProofGenerator.generateProof(privaInputs());
-    assert.strictEqual(privaPayload.publicSignals.length, 15);
+    assert.strictEqual(privaPayload.publicSignals.length, 17);
     assert.strictEqual(privaPayload.isAuthorized, true);
     assert.strictEqual(privaPayload.launchIdHash, '101');
-    assert.strictEqual(privaPayload.recipientHash, '303');
+    assert.strictEqual(privaPayload.recipientAddressHi, '303');
+    assert.strictEqual(privaPayload.recipientAddressLo, '304');
     assert.strictEqual(privaPayload.operation, 1);
   });
 
@@ -312,10 +326,10 @@ async function run() {
   await test('Priva verifier rejects a recipient-redirection policy mismatch', async () => {
     const result = await PrivaPurchaseAuthProofVerifier.verifyProof(
       privaPayload,
-      privaPolicy({ expectedRecipientHash: '304' })
+      privaPolicy({ expectedRecipientAddressLo: '305' })
     );
     assert.strictEqual(result.isValid, false);
-    assert.match(result.error, /recipientHash/);
+    assert.match(result.error, /recipient address/);
   });
 
   await test('Priva verifier rejects a cross-launch policy mismatch', async () => {

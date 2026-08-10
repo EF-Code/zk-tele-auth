@@ -18,9 +18,14 @@ template PrivaPurchaseAuth() {
 
     // Public Priva action binding.
     signal input launchIdHash;
-    signal input launchpadAddressHash;
+    // Canonical basechain TON account IDs are split into two 128-bit limbs.
+    // This avoids treating an opaque client-supplied field element as an
+    // address: the launchpad can independently extract and compare both limbs.
+    signal input launchpadAddressHi;
+    signal input launchpadAddressLo;
     signal input operation;
-    signal input recipientHash;
+    signal input recipientAddressHi;
+    signal input recipientAddressLo;
     signal input clientNonce;
     signal input expiryEpoch;
     signal input circuitVersion;
@@ -80,8 +85,16 @@ template PrivaPurchaseAuth() {
     // stable identity; it cannot bypass the launchpad's cumulative identity cap.
     component destination = Poseidon255(3);
     destination.in[0] <== launchIdHash;
-    destination.in[1] <== launchpadAddressHash;
-    destination.in[2] <== recipientHash;
+    // Fold the canonical limbs into the one-time authorization. Each limb is
+    // exposed separately so the TON contract can bind it to an actual address.
+    component launchpadAddress = Poseidon255(2);
+    launchpadAddress.in[0] <== launchpadAddressHi;
+    launchpadAddress.in[1] <== launchpadAddressLo;
+    component recipientAddress = Poseidon255(2);
+    recipientAddress.in[0] <== recipientAddressHi;
+    recipientAddress.in[1] <== recipientAddressLo;
+    destination.in[1] <== launchpadAddress.out;
+    destination.in[2] <== recipientAddress.out;
 
     component action = Poseidon255(4);
     action.in[0] <== operation;
@@ -107,9 +120,11 @@ component main {public [
     isPremiumRequired,
     issuerKeyHash,
     launchIdHash,
-    launchpadAddressHash,
+    launchpadAddressHi,
+    launchpadAddressLo,
     operation,
-    recipientHash,
+    recipientAddressHi,
+    recipientAddressLo,
     clientNonce,
     expiryEpoch,
     circuitVersion

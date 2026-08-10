@@ -2,9 +2,9 @@
   "name": "priva_purchase_auth",
   "power": 14,
   "prime": "bls12381",
-  "constraints": 3947,
-  "publicInputs": 15,
-  "vkeySha256": "3bb53a289f34bd2a3274fd8dccf0ec9d48da155b13c6c696f0f4f349f49bf1f3",
+  "constraints": 5195,
+  "publicInputs": 17,
+  "vkeySha256": "7454d4f4663b455dd2753dec56acabce5bb662a89a50dc22d22d6c07ad5121e4",
   "artifacts": {
     "r1cs": "priva_purchase_auth.r1cs",
     "wasm": "priva_purchase_auth.wasm",
