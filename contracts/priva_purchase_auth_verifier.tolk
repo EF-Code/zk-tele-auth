@@ -413,25 +413,6 @@ fun PrivaPurchaseAuthVerifier.verifyProof(self, msg: PrivaPurchaseAuthVerifierVe
   return self.verifyPayload(piA, piB, piC, mutate payload);
 }
 
-// Convenience standalone entrypoints. Remove or rename them when composing
-// multiple verifier structs inside one contract.
-fun onInternalMessage(inMsg: InMessage) {
-  val msg = lazy PrivaPurchaseAuthVerifierVerify.fromSlice(inMsg.body);
-
-  match (msg) {
-    PrivaPurchaseAuthVerifierVerify => {
-      assert (inMsg.valueCoins >= PrivaPurchaseAuthVerifierMinVerifyValue) throw PrivaPurchaseAuthVerifierErrors.NotEnoughValue;
-      val messageTail = msg.forceLoadLazyObject();
-      if (!messageTail.isEmpty()) { throw PrivaPurchaseAuthVerifierErrors.InvalidInputs; }
-      assert (PrivaPurchaseAuthVerifier.create().verifyProof(msg)) throw PrivaPurchaseAuthVerifierErrors.WrongProof;
-    }
-    else => {
-      assert (inMsg.body.isEmpty()) throw PrivaPurchaseAuthVerifierErrors.InvalidInputs;
-    }
-  }
-}
-
-
 /// Verifies a Groth16 proof against public inputs.
 get fun verify_PrivaPurchaseAuthVerifier(piA: slice, piB: slice, piC: slice, pubInputs: array<int>): bool {
   return PrivaPurchaseAuthVerifier.create().verify(piA, piB, piC, pubInputs);
