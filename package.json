@@ -8,6 +8,8 @@
     "build": "tsc -p tsconfig.json",
     "prepare": "tsc -p tsconfig.json",
     "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs",
+    "check:priva-artifacts": "node scripts/check-priva-artifact-provenance.mjs",
+    "check:priva-production": "node scripts/check-priva-artifact-provenance.mjs --production",
     "setup:circuits": "node scripts/setup-circuits.cjs",
     "compile-circuits": "node scripts/setup-circuits.cjs"
   },

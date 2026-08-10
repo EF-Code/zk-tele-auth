@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "circuit": "priva_purchase_auth",
+  "status": "development-only",
+  "generatedBy": "scripts/setup-circuits.cjs",
+  "setup": {
+    "type": "locally-generated deterministic development setup",
+    "productionEligible": false,
+    "reason": "The repository setup uses a reproducible local phase-1 contribution and deterministic phase-2 beacon. It is not a public or independently operated MPC ceremony."
+  },
+  "artifacts": {
+    "circuits/priva_purchase_auth.circom": "c022b212d36755f187cd75fda6502e43727ba97e9226ee81dcb0edf7fde8518c",
+    "artifacts/priva_purchase_auth/priva_purchase_auth.r1cs": "ee119541f12f7bb013c6924fac0ca0dd73daf5176635ff3ec3d09d99e7b44c75",
+    "artifacts/priva_purchase_auth/priva_purchase_auth.wasm": "c472d856db71fbbaca886941c2916515698b1a0aeaf837110194e7bb32c5bf73",
+    "artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey": "fdc0f9b3e34f40be648a4be0b5158444fe7b9a0e316a121aed473585e0d419da",
+    "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json": "68939e8dfd0ddeb39ab69984c367cb6539e73a32e589c2d70ce2a470f23f5604",
+    "contracts/priva_purchase_auth_verifier.tolk": "331bf59b1d2b21e72404270382991ab8d2548f5416ec7766ed7e4b9e706b60ef"
+  },
+  "productionRequirements": [
+    "A reviewed public-ceremony or independently operated multi-party ceremony transcript and verification record",
+    "A regenerated verification key and Tolk verifier whose hashes are recorded in a signed production attestation",
+    "An independent circuit, verifier, and launchpad-composition security review"
+  ]
+}
