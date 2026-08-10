@@ -136,6 +136,22 @@ This compiles both circuits over BLS12-381 and regenerates the R1CS, WASM, provi
 
 For production, use a suitable public ceremony or a properly operated multi-party ceremony and independently verify the resulting artifacts. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
 
+### Priva purchase artifact release gate
+
+`artifacts/priva_purchase_auth/provenance.json` records SHA-256 hashes for the circuit, proving artifacts, verification key, and generated Tolk verifier. Verify the committed development artifact set with:
+
+```bash
+npm run check:priva-artifacts
+```
+
+The production gate deliberately fails for the checked-in artifacts:
+
+```bash
+npm run check:priva-production
+```
+
+It may pass only after replacing the development setup with a reviewed public or independently operated MPC ceremony, recording the regenerated artifact hashes in a reviewed `production-attestation.json`, and completing an independent review of the circuit, verifier, and Priva launchpad integration. Do not mark `provenance.json` as production or add an attestation merely to satisfy this command; those records must correspond to the actual ceremony and reviewed deployment artifact set.
+
 ## Repository layout
 
 ```text
