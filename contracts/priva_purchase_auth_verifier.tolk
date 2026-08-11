@@ -44,7 +44,7 @@ struct PrivaPurchaseAuthVerifier {
     nPublic: int
 }
 
-const PrivaPurchaseAuthVerifierMinVerifyValue: coins = 50000000
+const PRIVA_PURCHASE_AUTH_VERIFIER_MIN_VERIFY_VALUE: coins = 50000000
 
 enum PrivaPurchaseAuthVerifierErrors {
     InvalidInputs = 258
@@ -95,18 +95,30 @@ fun PrivaPurchaseAuthVerifier.blsG1Add(x: slice, y: slice): slice
 fun PrivaPurchaseAuthVerifier.blsG1Neg(x: slice): slice
     asm "BLS_G1_NEG"
 
+/// # Safety
+/// The caller supplies a canonical 384-bit G1 encoding that has already passed
+/// the proof cell shape checks enforced by `loadCheckedG1`.
 @pure
 fun PrivaPurchaseAuthVerifier.blsG1InGroup(x: slice): bool
     asm "BLS_G1_INGROUP"
 
+/// # Safety
+/// The caller supplies a canonical 768-bit G2 encoding that has already passed
+/// the proof cell shape checks enforced by `loadCheckedG2`.
 @pure
 fun PrivaPurchaseAuthVerifier.blsG2InGroup(x: slice): bool
     asm "BLS_G2_INGROUP"
 
+/// # Safety
+/// The caller supplies a canonical 384-bit G1 encoding checked for exact shape
+/// before this helper is invoked.
 @pure
 fun PrivaPurchaseAuthVerifier.blsG1IsZero(x: slice): bool
     asm "BLS_G1_ISZERO"
 
+/// # Safety
+/// The caller supplies a canonical 768-bit G2 encoding checked for exact shape
+/// before this helper is invoked.
 @pure
 fun PrivaPurchaseAuthVerifier.blsG2IsZero(x: slice): bool
     asm "BLS_G2_ISZERO"
@@ -169,6 +181,9 @@ fun PrivaPurchaseAuthVerifier.loadCheckedProof(proof: cell): (slice, slice, slic
     return (piA, piB, piC);
 }
 
+/// # Safety
+/// `BLS_PUSHR` returns the VM's canonical BLS12-381 scalar-field modulus and
+/// consumes no caller-provided stack values.
 @pure
 fun PrivaPurchaseAuthVerifier.blsR(): int
     asm "BLS_PUSHR"
@@ -384,10 +399,9 @@ fun PrivaPurchaseAuthVerifier.verifyPayload(
 
     // Multiple 7-sized batches plus an optional tail.
     var done: int = 0;
-    val full: int = self.nPublic / 7;
     val rem: int = self.nPublic % 7;
 
-    while (done < full * 7) {
+    while (done + 7 <= self.nPublic) {
         val y1: int = PrivaPurchaseAuthVerifier.loadNextPubInput(mutate payload);
         val y2: int = PrivaPurchaseAuthVerifier.loadNextPubInput(mutate payload);
         val y3: int = PrivaPurchaseAuthVerifier.loadNextPubInput(mutate payload);
@@ -472,10 +486,9 @@ fun PrivaPurchaseAuthVerifier.verify(
 
     // Multiple 7-sized batches plus an optional tail.
     var done: int = 0;
-    val full: int = self.nPublic / 7;
     val rem: int = self.nPublic % 7;
 
-    while (done < full * 7) {
+    while (done + 7 <= self.nPublic) {
         val tmp: slice = PrivaPurchaseAuthVerifier.blsG1Multiexp7(
             self.ic(done + 1),
             PrivaPurchaseAuthVerifier.checkPublicInput(pubInputs.get(done)),
