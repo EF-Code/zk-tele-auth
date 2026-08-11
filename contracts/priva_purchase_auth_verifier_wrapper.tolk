@@ -8,7 +8,7 @@ fun onInternalMessage(inMsg: InMessage) {
 
   match (msg) {
     PrivaPurchaseAuthVerifierVerify => {
-      assert (inMsg.valueCoins >= PrivaPurchaseAuthVerifierMinVerifyValue) throw PrivaPurchaseAuthVerifierErrors.NotEnoughValue;
+      assert (inMsg.valueCoins >= PRIVA_PURCHASE_AUTH_VERIFIER_MIN_VERIFY_VALUE) throw PrivaPurchaseAuthVerifierErrors.NotEnoughValue;
       val messageTail = msg.forceLoadLazyObject();
       if (!messageTail.isEmpty()) { throw PrivaPurchaseAuthVerifierErrors.InvalidInputs; }
       assert (PrivaPurchaseAuthVerifier.create().verifyProof(msg)) throw PrivaPurchaseAuthVerifierErrors.WrongProof;
