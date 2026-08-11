@@ -14,8 +14,8 @@
     "artifacts/priva_purchase_auth/priva_purchase_auth.wasm": "ce1c459f71de221e71f24255c65a3b69013f54866a065e060815b6cf1353fee3",
     "artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey": "9720cb08ab28d4f4ec9d1af40198ad9eb4121591137970d5f84987e6a5dce2a6",
     "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json": "bde50de738c19ff675d19d09e611aae50247e1658df798b520313acc076466ae",
-    "contracts/priva_purchase_auth_verifier.tolk": "248513aaf56dd77a5903b6e7593f4eef882b04be2895999d5c8c2ddbfbce1096",
-    "contracts/priva_purchase_auth_verifier_wrapper.tolk": "875bf37dc63b7d8f372c15e6b72b442de9ddf79d3390f6e276249c8da3113441"
+    "contracts/priva_purchase_auth_verifier.tolk": "a0e8b8a000e54c3e85f11726545d07f736c2cb2ae59571ca952d95eea50b2a20",
+    "contracts/priva_purchase_auth_verifier_wrapper.tolk": "33f539ee0a276e293fe496378bd81388490c3155f9d217fb0bd76e239f2a62c1"
   },
   "productionRequirements": [
     "A reviewed public-ceremony or independently operated multi-party ceremony transcript and verification record",
