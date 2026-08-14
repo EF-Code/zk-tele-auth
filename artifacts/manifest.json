@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "type": "zk-tele-auth-artifact-manifest",
+  "status": "development-only",
+  "generatedBy": "scripts/check-artifact-manifest.mjs",
+  "circuits": {
+    "telegram_auth": {
+      "status": "development-only",
+      "files": {
+        "circuits/telegram_auth.circom": "37ef6317fa85936e7db69429ee748e7785184e6b065af52b81b26e6704528564",
+        "artifacts/telegram_auth/telegram_auth.r1cs": "3b6c81c767792c45f310a8290b237c9287db325142181cecd58bcdffb00d29da",
+        "artifacts/telegram_auth/telegram_auth.wasm": "3f2fae4712f02ffcf26f78a3cb193f915f28d43baa47de171c32055e5681a2bd",
+        "artifacts/telegram_auth/telegram_auth_final.zkey": "851a997955f29931242c507156b46956747dca399ff4d0d50ccd9d008693ed9d",
+        "artifacts/telegram_auth/telegram_auth_vkey.json": "cc1e1084f9d7fa39ed722c0a51e17b0c32c6e91bf37bfba8850c7f21c4637d9d",
+        "contracts/zk_tele_auth_verifier.tolk": "08e53010b6539d58fb5814eac5904b1be39699380604d7d13428074d6b932e0d"
+      }
+    },
+    "priva_purchase_auth": {
+      "status": "development-only",
+      "files": {
+        "circuits/priva_purchase_auth.circom": "c022b212d36755f187cd75fda6502e43727ba97e9226ee81dcb0edf7fde8518c",
+        "artifacts/priva_purchase_auth/priva_purchase_auth.r1cs": "ee119541f12f7bb013c6924fac0ca0dd73daf5176635ff3ec3d09d99e7b44c75",
+        "artifacts/priva_purchase_auth/priva_purchase_auth.wasm": "c472d856db71fbbaca886941c2916515698b1a0aeaf837110194e7bb32c5bf73",
+        "artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey": "fdc0f9b3e34f40be648a4be0b5158444fe7b9a0e316a121aed473585e0d419da",
+        "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json": "68939e8dfd0ddeb39ab69984c367cb6539e73a32e589c2d70ce2a470f23f5604",
+        "contracts/priva_purchase_auth_verifier.tolk": "95b6fcf633c5bd61b3e1fb4c80f51400103e3ed0dffabe9ae38251cf70221e46",
+        "contracts/priva_purchase_auth_verifier_wrapper.tolk": "875bf37dc63b7d8f372c15e6b72b442de9ddf79d3390f6e276249c8da3113441"
+      }
+    },
+    "membership": {
+      "status": "development-only",
+      "files": {
+        "circuits/membership.circom": "0b4e538946c264c512edc181ca67495d3cade0e723d84c4e6ef091c1c3a12ef9",
+        "artifacts/membership/membership.r1cs": "b164ddc432a9f73639b6e41bee0b5259fb22092b29f9aa7dada1a281bcdebcdb",
+        "artifacts/membership/membership.wasm": "e29c759ddd4ffbbaee4395e2e503e19eeacaa1c9cbbcd6624dda60dfb2e0adca",
+        "artifacts/membership/membership_final.zkey": "02b5336ba05e71962c52dd00a8979ac84dbf57a432f29e3e116099c1999501ca",
+        "artifacts/membership/membership_vkey.json": "4566087ac9839ad1e8ec795c56d50524475a57630dcceb29f652c788e54b2167"
+      }
+    }
+  }
+}
