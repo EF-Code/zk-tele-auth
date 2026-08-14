@@ -3,6 +3,7 @@ import http from 'node:http';
 import { ZkTeleAuthGateway } from '../dist/gateway/server.js';
 import { loadGatewayConfig } from '../dist/gateway/config.js';
 import { assertArtifactReadiness } from '../dist/gateway/artifact-readiness.js';
+import { structuredLog } from '../dist/gateway/secrets.js';
 
 function configEnv(overrides = {}) {
   return {
@@ -29,12 +30,25 @@ assert.throws(() => loadGatewayConfig(configEnv({ NODE_ENV: 'production', ZK_TEL
 assert.throws(() => loadGatewayConfig(configEnv({ ZK_TELE_AUTH_CORS_ORIGIN: '*' })), /explicit HTTPS origin/);
 assert.equal(assertArtifactReadiness({ allowDevelopmentArtifacts: true }).status, 'development-only');
 assert.throws(() => assertArtifactReadiness({ allowDevelopmentArtifacts: false }), /development proving artifacts/);
+const mismatchedGateway = new ZkTeleAuthGateway({
+  botToken: '123456789:token',
+  issuerSecret: '123456789',
+  appDomain: 'dapp.example',
+  expectedIssuerKeyHash: '1',
+});
+await assert.rejects(() => mismatchedGateway.verifyStartupPolicy(), /issuer commitment/);
+const redacted = structuredLog('test', { issuerKeyHash: '123456789', proof: 'proof-material', nested: { nonce: '1234', count: 2 } });
+assert.doesNotMatch(redacted, /123456789|proof-material/);
+assert.match(redacted, /REDACTED/);
 
 const gateway = new ZkTeleAuthGateway({
   botToken: '123456789:token',
   issuerSecret: '123456789',
   appDomain: 'dapp.example',
+  corsOrigin: 'https://dapp.example',
 });
+await gateway.verifyStartupPolicy();
+gateway.markReady();
 const server = gateway.createServer();
 const base = await listen(server);
 try {
@@ -60,6 +74,33 @@ try {
   const notFound = await fetch(`${base}/does-not-exist`);
   assert.equal(notFound.status, 404);
   assert.equal((await notFound.json()).code, 'NOT_FOUND');
+
+  const unknownField = await fetch(`${base}/authenticate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://dapp.example' },
+    body: JSON.stringify({ initData: 'not-valid', extra: true }),
+  });
+  assert.equal(unknownField.status, 422);
+  assert.equal((await unknownField.json()).code, 'REQUEST_REJECTED');
+
+  const duplicateField = await fetch(`${base}/authenticate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://dapp.example' },
+    body: '{"initData":"not-valid","initData":"also-not-valid"}',
+  });
+  assert.equal(duplicateField.status, 422);
+  assert.equal((await duplicateField.json()).code, 'REQUEST_REJECTED');
+
+  const deniedCors = await fetch(`${base}/authenticate`, {
+    method: 'OPTIONS',
+    headers: { origin: 'https://attacker.example', 'access-control-request-method': 'POST' },
+  });
+  assert.equal(deniedCors.status, 403);
+
+  gateway.markNotReady();
+  const notReady = await fetch(`${base}/readyz`);
+  assert.equal(notReady.status, 503);
+  gateway.markReady();
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }

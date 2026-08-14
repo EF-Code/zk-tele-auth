@@ -1,6 +1,7 @@
 import { loadGatewayConfig } from './config.js';
 import { assertArtifactReadiness } from './artifact-readiness.js';
 import { ZkTeleAuthGateway } from './server.js';
+import { structuredLog, secretPresence } from './secrets.js';
 
 async function main(): Promise<void> {
   const config = loadGatewayConfig();
@@ -9,6 +10,8 @@ async function main(): Promise<void> {
     allowDevelopmentArtifacts: config.allowDevelopmentArtifacts,
   });
   const gateway = new ZkTeleAuthGateway(config);
+  await gateway.verifyStartupPolicy();
+  gateway.markReady();
   const server = gateway.createServer();
   server.requestTimeout = config.requestTimeoutMs;
   server.headersTimeout = config.headersTimeoutMs;
@@ -17,32 +20,38 @@ async function main(): Promise<void> {
   const shutdown = (signal: string) => {
     if (stopping) return;
     stopping = true;
-    console.log(JSON.stringify({ event: 'shutdown_started', signal }));
+    gateway.markNotReady();
+    gateway.stopAccepting();
+    console.log(structuredLog('shutdown_started', { signal }));
     server.close((error) => {
       if (error) {
-        console.error(JSON.stringify({ event: 'shutdown_failed', error: error.message }));
+        console.error(structuredLog('shutdown_failed', { error: error.message }));
         process.exitCode = 1;
       } else {
-        console.log(JSON.stringify({ event: 'shutdown_complete' }));
+        void gateway.drain(config.requestTimeoutMs).then((drained) => {
+          if (!drained) process.exitCode = 1;
+          console.log(structuredLog('shutdown_complete', { drained }));
+        });
       }
     });
   };
   process.once('SIGTERM', () => shutdown('SIGTERM'));
   process.once('SIGINT', () => shutdown('SIGINT'));
   server.listen(config.port, config.host, () => {
-    console.log(JSON.stringify({
-      event: 'gateway_ready',
+    console.log(structuredLog('gateway_ready', {
       environment: config.environment,
       host: config.host,
       port: config.port,
       artifactStatus: artifacts.status,
       manifestDigest: artifacts.manifestDigest,
+      telegramBotToken: secretPresence(config.botToken),
+      issuerSecret: secretPresence(config.issuerSecret),
+      issuerKeyHash: config.expectedIssuerKeyHash ? 'configured' : 'not_configured',
     }));
   });
 }
 
 main().catch((error) => {
-  console.error(JSON.stringify({ event: 'gateway_start_failed', error: error instanceof Error ? error.message : String(error) }));
+  console.error(structuredLog('gateway_start_failed', { error: error instanceof Error ? error.message : String(error) }));
   process.exitCode = 1;
 });
-

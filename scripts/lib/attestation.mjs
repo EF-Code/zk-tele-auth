@@ -47,6 +47,16 @@ export function verifyAttestationSignature(attestation, trustedKeys) {
   if (typeof attestation.signature !== 'string' || !attestation.signature) throw new Error('attestation signature is required');
   const trusted = trustedKeys?.keys?.find((key) => key?.keyId === attestation.keyId);
   if (!trusted || trusted.revoked === true) throw new Error(`attestation signer is not trusted: ${attestation.keyId}`);
+  if (trustedKeys?.schemaVersion !== 1 || trustedKeys?.type !== 'zk-tele-auth-attestation-trust-policy') throw new Error('unsupported attestation trust policy');
+  if (typeof trusted.identity !== 'string' || trusted.identity.length < 3) throw new Error('trusted attestation signer identity is required');
+  if (!Array.isArray(trusted.allowedNetworks) || trusted.allowedNetworks.length === 0 || !trusted.allowedNetworks.includes(attestation.network)) throw new Error('attestation network is not allowed for signer');
+  if (typeof trusted.validFrom !== 'string' || Number.isNaN(Date.parse(trusted.validFrom)) || typeof trusted.validUntil !== 'string' || Number.isNaN(Date.parse(trusted.validUntil))) throw new Error('trusted attestation key validity window is malformed');
+  const createdAt = Date.parse(String(attestation.createdAt || ''));
+  if (Number.isNaN(createdAt) || createdAt < Date.parse(trusted.validFrom) || createdAt > Date.parse(trusted.validUntil)) throw new Error('attestation createdAt is outside signer validity window');
+  if (createdAt > Date.now() + 300_000) throw new Error('attestation createdAt is in the future');
+  if (typeof attestation.commit !== 'string' || !/^[0-9a-f]{40}$/i.test(attestation.commit)) throw new Error('attestation commit is malformed');
+  if (typeof attestation.manifestDigest !== 'string' || !/^[0-9a-f]{64}$/i.test(attestation.manifestDigest)) throw new Error('attestation manifest digest is malformed');
+  if (typeof attestation.reviewReference !== 'string' || !attestation.reviewReference || attestation.reviewReference.includes('PENDING')) throw new Error('attestation review reference is required');
   if (typeof trusted.publicKey !== 'string') throw new Error('trusted attestation key has no public key');
   const signature = Buffer.from(attestation.signature, 'base64');
   if (signature.length !== 64) throw new Error('Ed25519 signatures must contain exactly 64 bytes');
@@ -55,6 +65,7 @@ export function verifyAttestationSignature(attestation, trustedKeys) {
   if (!valid) throw new Error('attestation signature verification failed');
   if (typeof attestation.expiresAt !== 'string' || Number.isNaN(Date.parse(attestation.expiresAt))) throw new Error('attestation expiresAt is required');
   if (Date.parse(attestation.expiresAt) <= Date.now()) throw new Error('attestation has expired');
+  if (Date.parse(attestation.expiresAt) > Date.parse(trusted.validUntil)) throw new Error('attestation expires after signer validity');
   return true;
 }
 

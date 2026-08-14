@@ -10,6 +10,8 @@ export interface GatewayRuntimeConfig extends ZkTeleAuthGatewayOptions {
   maxQueueDepth: number;
   environment: 'development' | 'test' | 'staging' | 'production';
   allowDevelopmentArtifacts: boolean;
+  expectedIssuerKeyHash?: string;
+  maxAuthorizationTtlSec: number;
 }
 
 function required(env: NodeJS.ProcessEnv, name: string): string {
@@ -42,6 +44,12 @@ function environment(env: NodeJS.ProcessEnv): GatewayRuntimeConfig['environment'
   return value;
 }
 
+function optionalField(value: string | undefined, name: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (!/^[0-9]+$/.test(value)) throw new Error(`${name} must be a decimal field element`);
+  return value;
+}
+
 /** Parse production gateway configuration without logging any secret values. */
 export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): GatewayRuntimeConfig {
   const currentEnvironment = environment(env);
@@ -51,6 +59,10 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
   }
   const maxTokenAgeSec = integer(env, 'ZK_TELE_AUTH_MAX_TOKEN_AGE_SEC', 3600, 1, 0xffff_ffff);
   const maxAuthorizationTtlSec = integer(env, 'ZK_TELE_AUTH_MAX_AUTHORIZATION_TTL_SEC', maxTokenAgeSec, 1, maxTokenAgeSec);
+  const expectedIssuerKeyHash = optionalField(env.ZK_TELE_AUTH_ISSUER_KEY_HASH, 'ZK_TELE_AUTH_ISSUER_KEY_HASH');
+  if (currentEnvironment === 'production' && !expectedIssuerKeyHash) {
+    throw new Error('ZK_TELE_AUTH_ISSUER_KEY_HASH is required in production');
+  }
   const corsOrigin = required(env, 'ZK_TELE_AUTH_CORS_ORIGIN');
   if (corsOrigin === '*' || !/^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(corsOrigin)) {
     throw new Error('ZK_TELE_AUTH_CORS_ORIGIN must be one explicit HTTPS origin');
@@ -73,6 +85,7 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     maxQueueDepth: integer(env, 'ZK_TELE_AUTH_MAX_QUEUE_DEPTH', 8, 0, 1024),
     environment: currentEnvironment,
     allowDevelopmentArtifacts,
+    expectedIssuerKeyHash,
+    maxAuthorizationTtlSec,
   };
 }
-

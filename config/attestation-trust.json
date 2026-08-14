@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
   "type": "zk-tele-auth-attestation-trust-policy",
+  "description": "Reviewed Ed25519 reviewer/ceremony keys only. Empty until an operator records independent public-key evidence.",
   "keys": []
 }

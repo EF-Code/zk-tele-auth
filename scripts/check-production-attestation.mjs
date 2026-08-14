@@ -26,7 +26,7 @@ try {
   if (profile.schemaVersion !== 1 || !Array.isArray(profile.requiredCircuits) || profile.requiredCircuits.length === 0) {
     throw new Error('deployment profile must name at least one required circuit');
   }
-  if (manifest.status !== 'production-approved') throw new Error('artifact manifest is not production-approved');
+  if (manifest.schemaVersion !== 2 || manifest.status !== 'production-approved') throw new Error('artifact manifest is not production-approved');
   verifyAttestationSignature(attestation, trust);
   if (attestation.network !== profile.network) throw new Error('attestation network does not match deployment profile');
   if (attestation.commit !== profile.reviewedCommit) throw new Error('attestation commit does not match deployment profile');
@@ -37,6 +37,11 @@ try {
     const expected = manifest.circuits[circuit].files;
     const actual = attestation.circuits?.[circuit]?.files;
     if (canonicalJson(expected) !== canonicalJson(actual)) throw new Error(`attestation hashes do not match manifest: ${circuit}`);
+    for (const [relativePath, expectedHash] of Object.entries(expected)) {
+      const artifactPath = path.resolve(root, relativePath);
+      if (!artifactPath.startsWith(`${root}${path.sep}`) || !fs.existsSync(artifactPath)) throw new Error(`attested artifact is missing: ${relativePath}`);
+      if (sha256File(artifactPath, fs) !== expectedHash) throw new Error(`attested artifact hash mismatch: ${relativePath}`);
+    }
   }
   console.log('✓ cryptographically verified production artifact attestation');
 } catch (error) {

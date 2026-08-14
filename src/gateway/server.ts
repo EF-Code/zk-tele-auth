@@ -22,6 +22,9 @@ export interface ZkTeleAuthGatewayOptions {
   headersTimeoutMs?: number;
   keepAliveTimeoutMs?: number;
   maxQueueDepth?: number;
+  proofTimeoutMs?: number;
+  expectedIssuerKeyHash?: string;
+  maxAuthorizationTtlSec?: number;
   exposeHttpErrors?: boolean;
   artifactOpts?: ProofArtifactOptions;
 }
@@ -69,6 +72,9 @@ export class ZkTeleAuthGateway {
   private headersTimeoutMs: number;
   private keepAliveTimeoutMs: number;
   private maxQueueDepth: number;
+  private proofTimeoutMs: number;
+  private expectedIssuerKeyHash?: string;
+  private maxAuthorizationTtlSec: number;
   private exposeHttpErrors: boolean;
   private activeProofs = 0;
   private queuedProofs = 0;
@@ -78,6 +84,10 @@ export class ZkTeleAuthGateway {
   private completedRequestCount = 0;
   private failedRequestCount = 0;
   private artifactOpts: ProofArtifactOptions;
+  private accepting = true;
+  private ready = false;
+  private inFlightRequests = 0;
+  private drainWaiters: Array<() => void> = [];
 
   constructor(options: ZkTeleAuthGatewayOptions) {
     if (!options.botToken) throw new Error('botToken is required');
@@ -99,6 +109,9 @@ export class ZkTeleAuthGateway {
     this.headersTimeoutMs = options.headersTimeoutMs ?? 10_000;
     this.keepAliveTimeoutMs = options.keepAliveTimeoutMs ?? 5_000;
     this.maxQueueDepth = options.maxQueueDepth ?? 0;
+    this.proofTimeoutMs = options.proofTimeoutMs ?? 30_000;
+    this.expectedIssuerKeyHash = options.expectedIssuerKeyHash;
+    this.maxAuthorizationTtlSec = options.maxAuthorizationTtlSec ?? this.maxTokenAgeSec;
     this.exposeHttpErrors = options.exposeHttpErrors ?? false;
     this.artifactOpts = options.artifactOpts ?? {};
     if (!Number.isSafeInteger(this.maxTokenAgeSec) || this.maxTokenAgeSec <= 0 || this.maxTokenAgeSec > 0xffff_ffff) {
@@ -118,6 +131,52 @@ export class ZkTeleAuthGateway {
       if (!Number.isSafeInteger(value) || value < 1000) throw new Error(`${name} must be an integer >= 1000`);
     }
     if (!Number.isSafeInteger(this.maxQueueDepth) || this.maxQueueDepth < 0) throw new Error('maxQueueDepth must be a non-negative integer');
+    if (!Number.isSafeInteger(this.proofTimeoutMs) || this.proofTimeoutMs < 1000) throw new Error('proofTimeoutMs must be an integer >= 1000');
+    if (!Number.isSafeInteger(this.maxAuthorizationTtlSec) || this.maxAuthorizationTtlSec <= 0 || this.maxAuthorizationTtlSec > this.maxTokenAgeSec) throw new Error('maxAuthorizationTtlSec must be in 1..maxTokenAgeSec');
+    if (this.expectedIssuerKeyHash !== undefined) {
+      assertFieldElement(BigInt(this.expectedIssuerKeyHash), 'expectedIssuerKeyHash');
+    }
+  }
+
+  /** Validate the independently configured issuer commitment before readiness. */
+  async verifyStartupPolicy(): Promise<void> {
+    const derived = await this.issuerKeyHash;
+    if (this.expectedIssuerKeyHash !== undefined && derived !== this.expectedIssuerKeyHash) {
+      throw new Error('configured issuer commitment does not match issuerSecret');
+    }
+  }
+
+  markReady(): void { this.ready = true; }
+  markNotReady(): void { this.ready = false; }
+  stopAccepting(): void {
+    this.accepting = false;
+    if (this.inFlightRequests === 0) this.resolveDrainWaiters();
+  }
+  async drain(timeoutMs = this.requestTimeoutMs): Promise<boolean> {
+    if (this.inFlightRequests === 0) return true;
+    return new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => resolve(false), timeoutMs);
+      this.drainWaiters.push(() => { clearTimeout(timer); resolve(true); });
+    });
+  }
+  private resolveDrainWaiters(): void {
+    const waiters = this.drainWaiters.splice(0);
+    for (const waiter of waiters) waiter();
+  }
+  readiness(): { ready: boolean; activeProofs: number; queuedProofs: number; maxConcurrentProofs: number } {
+    return { ready: this.ready, activeProofs: this.activeProofs, queuedProofs: this.queuedProofs, maxConcurrentProofs: this.maxConcurrentProofs };
+  }
+
+  private async withProofTimeout<T>(work: Promise<T>): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        work,
+        new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error('proof generation timed out')), this.proofTimeoutMs); }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   private async acquireProofSlot(): Promise<void> {
@@ -171,7 +230,7 @@ export class ZkTeleAuthGateway {
     try {
       const issuerKeyHash = await this.issuerKeyHash;
 
-      const proofPayload = await ZkAuthProofGenerator.generateProof(
+      const proofPayload = await this.withProofTimeout(ZkAuthProofGenerator.generateProof(
         {
           userId: user.id,
           authDate: raw.auth_date,
@@ -183,7 +242,7 @@ export class ZkTeleAuthGateway {
           issuerSecret: this.issuerSecret,
         },
         this.artifactOpts
-      );
+      ));
 
       const verification = await ZkAuthProofVerifier.verifyProof(
         proofPayload,
@@ -249,13 +308,13 @@ export class ZkTeleAuthGateway {
     if (!Number.isSafeInteger(raw.auth_date) || raw.auth_date <= 0) throw new Error('initData carries an invalid auth_date');
     if (raw.auth_date > now + CLOCK_SKEW_SEC) throw new Error('initData auth_date is in the future');
     if (now - raw.auth_date > this.maxTokenAgeSec) throw new Error('Telegram initData expired');
-    if (request.expiryEpoch < now || request.expiryEpoch - now > this.maxTokenAgeSec) {
+    if (request.expiryEpoch < now || request.expiryEpoch - now > this.maxAuthorizationTtlSec) {
       throw new Error('expiryEpoch is outside the gateway authorization window');
     }
     await this.acquireProofSlot();
     try {
       const issuerKeyHash = await this.issuerKeyHash;
-      const proofPayload = await PrivaPurchaseAuthProofGenerator.generateProof({
+      const proofPayload = await this.withProofTimeout(PrivaPurchaseAuthProofGenerator.generateProof({
         userId: user.id,
         authDate: raw.auth_date,
         isPremium: Boolean(user.is_premium),
@@ -272,7 +331,7 @@ export class ZkTeleAuthGateway {
         clientNonce: request.clientNonce,
         expiryEpoch: request.expiryEpoch,
         circuitVersion: 1,
-      });
+      }));
       const verification = await PrivaPurchaseAuthProofVerifier.verifyProof(proofPayload, {
         expectedAppDomain: this.appDomain,
         expectedIssuerKeyHash: issuerKeyHash,
@@ -283,7 +342,7 @@ export class ZkTeleAuthGateway {
         expectedLaunchpadAddressLo: request.launchpadAddressLo,
         expectedRecipientAddressHi: request.recipientAddressHi,
         expectedRecipientAddressLo: request.recipientAddressLo,
-        maxAuthorizationTtlSec: this.maxTokenAgeSec,
+        maxAuthorizationTtlSec: this.maxAuthorizationTtlSec,
         expectedCircuitVersion: 1,
       });
       if (!verification.isValid) throw new Error(`self-check verification failed: ${verification.error}`);
@@ -304,8 +363,20 @@ export class ZkTeleAuthGateway {
    */
   createServer(): http.Server {
     const server = http.createServer(async (req, res) => {
+      if (!this.accepting) {
+        res.writeHead(503, { 'Content-Type': 'application/json', 'Retry-After': '1' });
+        res.end(JSON.stringify({ error: 'server is draining', code: 'SERVER_DRAINING' }));
+        return;
+      }
       const requestId = crypto.randomUUID();
       this.requestCount += 1;
+      this.inFlightRequests += 1;
+      const finishRequest = () => {
+        this.inFlightRequests -= 1;
+        if (!this.accepting && this.inFlightRequests === 0) this.resolveDrainWaiters();
+      };
+      res.once('finish', finishRequest);
+      res.once('close', () => { if (!res.writableFinished) finishRequest(); });
       res.setHeader('X-Request-Id', requestId);
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Cache-Control', 'no-store');
@@ -322,8 +393,9 @@ export class ZkTeleAuthGateway {
         return;
       }
       if (req.method === 'GET' && pathname === '/readyz') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ready', activeProofs: this.activeProofs, queuedProofs: this.queuedProofs, maxConcurrentProofs: this.maxConcurrentProofs }));
+        const status = this.readiness();
+        res.writeHead(status.ready ? 200 : 503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: status.ready ? 'ready' : 'not_ready', ...status }));
         return;
       }
       if (req.method === 'GET' && pathname === '/metrics') {
@@ -338,6 +410,12 @@ export class ZkTeleAuthGateway {
         return;
       }
       if (req.method === 'OPTIONS' && (pathname === '/authenticate' || pathname === '/v1/purchase-authorizations')) {
+        const origin = String(req.headers.origin || '');
+        if (this.corsOrigin && origin !== this.corsOrigin) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'origin is not allowed', code: 'CORS_ORIGIN_DENIED' }));
+          return;
+        }
         res.writeHead(204);
         res.end();
         return;
@@ -354,6 +432,13 @@ export class ZkTeleAuthGateway {
         this.rejectedRequestCount += 1;
         res.writeHead(415, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'content type must be application/json', code: 'UNSUPPORTED_MEDIA_TYPE' }));
+        return;
+      }
+      const origin = String(req.headers.origin || '');
+      if (this.corsOrigin && origin && origin !== this.corsOrigin) {
+        this.rejectedRequestCount += 1;
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'origin is not allowed', code: 'CORS_ORIGIN_DENIED', requestId }));
         return;
       }
       if (this.activeProofs + this.queuedProofs >= this.maxConcurrentProofs + this.maxQueueDepth) {
@@ -389,13 +474,14 @@ export class ZkTeleAuthGateway {
       req.on('end', async () => {
         if (bodyRejected || ended) return;
         try {
-          const parsed = JSON.parse(body || '{}');
+          const parsed = parseRequestJson(body || '{}');
+          validateRequestSchema(pathname, parsed);
           const initData = parsed.initData;
           if (typeof initData !== 'string') {
             throw new Error('body must include a string "initData" field');
           }
           const result = pathname === '/v1/purchase-authorizations'
-            ? await this.handlePrivaPurchaseAuthorization(initData, parsed)
+            ? await this.handlePrivaPurchaseAuthorization(initData, parsed as unknown as PrivaPurchaseAuthorizationRequest)
             : await this.handleAuthenticate(initData);
           this.completedRequestCount += 1;
           ended = true;
@@ -403,13 +489,13 @@ export class ZkTeleAuthGateway {
           res.end(JSON.stringify(result));
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          const status = message.startsWith('prover busy') ? 429 : 400;
+          const status = message.startsWith('prover busy') ? 429 : message.includes('timed out') ? 504 : message.startsWith('Invalid Telegram') ? 401 : 422;
           this.failedRequestCount += 1;
           ended = true;
           res.writeHead(status, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: this.exposeHttpErrors ? message : 'request rejected',
-            code: status === 429 ? 'PROVER_BUSY' : 'REQUEST_REJECTED',
+            code: status === 429 ? 'PROVER_BUSY' : status === 504 ? 'PROOF_TIMEOUT' : status === 401 ? 'TELEGRAM_AUTH_REJECTED' : 'REQUEST_REJECTED',
             requestId,
           }));
         }
@@ -419,5 +505,47 @@ export class ZkTeleAuthGateway {
     server.headersTimeout = this.headersTimeoutMs;
     server.keepAliveTimeout = this.keepAliveTimeoutMs;
     return server;
+  }
+}
+
+function parseRequestJson(text: string): Record<string, unknown> {
+  const value = JSON.parse(text);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('request body must be a JSON object');
+  // JSON.parse accepts duplicate keys with last-write-wins semantics.  Reject
+  // duplicate semantic keys before parsing so an intermediary cannot sign one
+  // value while the gateway consumes another.
+  const keys: string[] = [];
+  let inString = false;
+  let escaped = false;
+  let expectingKey = false;
+  let key = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') { inString = false; if (expectingKey) { key = JSON.parse(`"${key}"`); if (keys.includes(key)) throw new Error('duplicate JSON field'); keys.push(key); expectingKey = false; } }
+      else if (expectingKey) key += char;
+      continue;
+    }
+    if (char === '"') { inString = true; key = ''; const prefix = text.slice(0, i).trimEnd(); expectingKey = prefix.endsWith('{') || prefix.endsWith(','); }
+  }
+  return value as Record<string, unknown>;
+}
+
+function validateRequestSchema(pathname: string, parsed: Record<string, unknown>): void {
+  const allowed = pathname === '/authenticate'
+    ? new Set(['schemaVersion', 'initData'])
+    : new Set(['schemaVersion', 'initData', 'launchIdHash', 'launchpadAddressHi', 'launchpadAddressLo', 'recipientAddressHi', 'recipientAddressLo', 'clientNonce', 'expiryEpoch', 'operation', 'circuitVersion']);
+  for (const key of Object.keys(parsed)) if (!allowed.has(key)) throw new Error(`unknown request field: ${key}`);
+  if (parsed.schemaVersion !== undefined && parsed.schemaVersion !== 1) throw new Error('unsupported request schema version');
+  if (typeof parsed.initData !== 'string' || parsed.initData.length === 0 || parsed.initData.length > 32 * 1024) throw new Error('initData must be a bounded non-empty string');
+  if (pathname === '/v1/purchase-authorizations') {
+    for (const key of ['launchIdHash', 'launchpadAddressHi', 'launchpadAddressLo', 'recipientAddressHi', 'recipientAddressLo', 'clientNonce']) {
+      if (typeof parsed[key] !== 'string' || !/^(0|[1-9][0-9]*)$/.test(parsed[key] as string)) throw new Error(`${key} must be a canonical decimal field`);
+    }
+    if (parsed.operation !== 'BUY') throw new Error('operation must be BUY');
+    if (!Number.isSafeInteger(parsed.expiryEpoch) || (parsed.expiryEpoch as number) < 0) throw new Error('expiryEpoch must be a safe integer');
+    if (parsed.circuitVersion !== undefined && parsed.circuitVersion !== 1) throw new Error('unsupported circuit version');
   }
 }
