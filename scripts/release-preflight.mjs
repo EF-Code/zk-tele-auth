@@ -127,7 +127,7 @@ function inspectExternalRecords() {
     else add('mainnet_approval', 'pass', 'mainnet approval reference is present in the operator profile', ['docs/production/deployment-profile.json']);
   }
   else add('mainnet_approval', 'not-applicable', 'deployment profile targets testnet/staging; mainnet approval is not yet in scope', ['docs/production/deployment-profile.json']);
-  add('priva_launchpad_composition', fs.existsSync(path.join(root, 'contracts', 'priva_purchase_launchpad.tolk')) ? 'blocked' : 'blocked', 'the actual Priva launchpad composition and economic policy require implementation and independent review', ['docs/priva-integration.md', 'contracts/priva_purchase_auth_verifier_wrapper.tolk']);
+  command('priva_launchpad_composition', ['npm', 'run', 'check:priva-composition'], false);
 }
 
 function inspectSecrets() {
