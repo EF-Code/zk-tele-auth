@@ -77,7 +77,16 @@ try {
   } else {
     const actual = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-      fail('artifact manifest is stale or has been edited outside the generator');
+      const mismatches = [];
+      for (const [circuit, config] of Object.entries(expected.circuits)) {
+        for (const [relativePath, expectedHash] of Object.entries(config.files)) {
+          const actualHash = actual.circuits?.[circuit]?.files?.[relativePath];
+          if (actualHash !== expectedHash) mismatches.push(`${relativePath}: manifest=${actualHash || '<missing>'}, current=${expectedHash}`);
+        }
+        if (actual.circuits?.[circuit]?.status !== config.status) mismatches.push(`${circuit}: status=${actual.circuits?.[circuit]?.status || '<missing>'}, current=${config.status}`);
+      }
+      if (actual.status !== expected.status) mismatches.push(`manifest status=${actual.status || '<missing>'}, current=${expected.status}`);
+      fail(`artifact manifest is stale or has been edited outside the generator${mismatches.length ? ` (${mismatches.slice(0, 8).join('; ')})` : ''}`);
     } else {
       console.log('✓ artifact manifest matches all source and generated files');
     }
@@ -85,4 +94,3 @@ try {
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }
-
