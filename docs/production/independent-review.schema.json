@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "status", "commit", "artifactManifestDigest", "reviewer", "findingsClosed"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "const": "approved" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "artifactManifestDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "reviewer": { "type": "string", "minLength": 1 },
+    "reportReference": { "type": "string", "minLength": 1 },
+    "findingsClosed": { "const": true }
+  },
+  "additionalProperties": false
+}

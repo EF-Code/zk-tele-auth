@@ -1,0 +1,10 @@
+# Sensitive changes require explicit owner review in repository settings.
+* @EF-Code
+/circuits/ @EF-Code
+/contracts/ @EF-Code
+/artifacts/ @EF-Code
+/config/ @EF-Code
+/.github/ @EF-Code
+/deploy/ @EF-Code
+/scripts/ @EF-Code
+
