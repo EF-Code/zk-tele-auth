@@ -36,6 +36,7 @@
     "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs && node tests/gateway-hardening-tests.mjs && node tests/attestation-tests.mjs",
     "check:priva-artifacts": "node scripts/check-priva-artifact-provenance.mjs",
     "check:priva-production": "node scripts/check-production-attestation.mjs",
+    "check:priva-composition": "node scripts/check-priva-composition.mjs",
     "artifacts:manifest:write": "node scripts/check-artifact-manifest.mjs --write",
     "artifacts:manifest:check": "node scripts/check-artifact-manifest.mjs",
     "artifacts:verify:production": "node scripts/check-production-attestation.mjs",
