@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "status", "commit", "codeHash", "findingsClosed", "reviewer", "reviewReference", "invariants"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["pending", "approved", "rejected", "superseded"] },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "codeHash": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "findingsClosed": { "type": "boolean" },
+    "reviewer": { "type": "string", "minLength": 3 },
+    "reviewReference": { "type": "string", "minLength": 3 },
+    "invariants": {
+      "type": "object",
+      "required": ["actionReplay", "identityCap", "recipientBinding", "valueConservation", "bounceAndFailure", "storageEconomics"],
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

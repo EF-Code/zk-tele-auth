@@ -5,63 +5,104 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { Cell, contractAddress } from '@ton/core';
 import { runTolkCompiler } from '@ton/tolk-js';
-import { buildTonVerifierStateInitData } from '../dist/sdk/ton-storage.js';
+import { buildPrivaLaunchpadStateInitData, buildTonVerifierStateInitData } from '../dist/sdk/ton-storage.js';
 import { sha256File } from './lib/attestation.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const args = new Set(process.argv.slice(2));
 const value = (name, fallback) => {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1] : fallback;
 };
+const args = new Set(process.argv.slice(2));
 const network = value('--network', 'testnet');
 const contract = value('--contract', 'generic-verifier');
 const workchain = Number(value('--workchain', '0'));
+const dryRun = args.has('--dry-run');
 const live = args.has('--live');
 const confirmedMainnet = args.has('--confirm-mainnet');
-if (network !== 'testnet' && network !== 'mainnet') throw new Error('--network must be testnet or mainnet');
-if (contract !== 'generic-verifier') throw new Error('only generic-verifier dry-run tooling is implemented; Priva launchpad composition is not yet approved');
+if (!['testnet', 'mainnet'].includes(network)) throw new Error('--network must be testnet or mainnet');
+if (!['generic-verifier', 'priva-launchpad'].includes(contract)) throw new Error('--contract must be generic-verifier or priva-launchpad');
 if (!Number.isInteger(workchain) || workchain < -128 || workchain > 127) throw new Error('--workchain must be an integer in -128..127');
-if (network === 'mainnet' && !confirmedMainnet) throw new Error('mainnet requires --confirm-mainnet and remains operator-controlled');
-if (live) throw new Error('live network mutation is not implemented; use --dry-run and an approved multisig adapter');
+if (!dryRun && !live) throw new Error('deployment mode must be explicit: pass --dry-run or --live');
+if (live) throw new Error('live network mutation is not implemented; use an approved multisig adapter after this deterministic dry-run');
+if (network === 'mainnet' && !confirmedMainnet) throw new Error('mainnet dry-runs require --confirm-mainnet and remain operator-controlled');
 
 const profile = JSON.parse(fs.readFileSync(path.join(root, 'docs/production/deployment-profile.json'), 'utf8'));
-const required = ['applicationDomain', 'issuerKeyHash', 'maxTokenAgeSec', 'requirePremium'];
+const required = contract === 'generic-verifier'
+  ? ['network', 'applicationDomain', 'appDomainHash', 'issuerKeyHash', 'maxTokenAgeSec']
+  : ['network', 'applicationDomain', 'appDomainHash', 'issuerKeyHash', 'maxTokenAgeSec', 'maxAuthorizationTtlSec', 'launchIdHash', 'pricePerUnitNano', 'perIdentityCap', 'inventory'];
 for (const key of required) {
-  if (profile[key] === '' || profile[key] === 0 || String(profile[key]).includes('PENDING')) throw new Error(`operator profile is incomplete: ${key}`);
+  if (profile[key] === undefined || profile[key] === '' || profile[key] === 0 || String(profile[key]) === '0' || String(profile[key]).includes('PENDING')) throw new Error(`operator profile is incomplete: ${key}`);
 }
+if (profile.network !== network) throw new Error(`operator profile network ${profile.network} does not match --network ${network}`);
+if (contract === 'priva-launchpad') {
+  for (const [name, maximum] of [['pricePerUnitNano', (1n << 64n) - 1n], ['perIdentityCap', 1000000n], ['inventory', 1000000n]]) {
+    const raw = String(profile[name]);
+    if (!/^(0|[1-9][0-9]*)$/.test(raw) || BigInt(raw) <= 0n || BigInt(raw) > maximum) throw new Error(`${name} must be a positive bounded decimal integer`);
+  }
+}
+
+const entrypointFileName = contract === 'generic-verifier' ? 'contracts/zk_tele_auth_verifier.tolk' : 'contracts/priva_purchase_launchpad.tolk';
 const compilation = await runTolkCompiler({
-  entrypointFileName: 'contracts/zk_tele_auth_verifier.tolk',
+  entrypointFileName,
   fsReadCallback: (requestedPath) => fs.readFileSync(path.resolve(root, requestedPath), 'utf8'),
 });
 if (compilation.status === 'error') throw new Error(compilation.message);
 const code = Cell.fromBoc(Buffer.from(compilation.codeBoc64, 'base64'))[0];
-const data = buildTonVerifierStateInitData({
-  appDomainHash: String(profile.appDomainHash || (() => { throw new Error('operator profile requires appDomainHash'); })()),
-  issuerKeyHash: String(profile.issuerKeyHash),
-  maxTokenAgeSec: Number(profile.maxTokenAgeSec),
-  requirePremium: Boolean(profile.requirePremium),
-});
+const data = contract === 'generic-verifier'
+  ? buildTonVerifierStateInitData({
+    appDomainHash: String(profile.appDomainHash),
+    issuerKeyHash: String(profile.issuerKeyHash),
+    maxTokenAgeSec: Number(profile.maxTokenAgeSec),
+    requirePremium: Boolean(profile.requirePremium),
+  })
+  : buildPrivaLaunchpadStateInitData({
+    appDomainHash: String(profile.appDomainHash),
+    issuerKeyHash: String(profile.issuerKeyHash),
+    launchIdHash: String(profile.launchIdHash),
+    maxTokenAgeSec: Number(profile.maxTokenAgeSec),
+    requirePremium: Boolean(profile.requirePremium),
+    maxAuthorizationTtlSec: Number(profile.maxAuthorizationTtlSec),
+    pricePerUnitNano: String(profile.pricePerUnitNano),
+    perIdentityCap: String(profile.perIdentityCap),
+    inventory: String(profile.inventory),
+  });
 const address = contractAddress(workchain, { code, data });
 const manifestPath = path.join(root, 'artifacts', 'manifest.json');
+const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
+const expectedFundingNano = contract === 'generic-verifier' ? 50_000_000n : 100_000_000n + BigInt(String(profile.pricePerUnitNano));
 const summary = {
   schemaVersion: 1,
   mode: 'dry-run',
   network,
   contract,
   workchain,
-  sourceCommit: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim(),
+  sourceCommit,
   artifactManifestDigest: sha256File(manifestPath, fs),
   codeHash: code.hash().toString('hex'),
   dataHash: data.hash().toString('hex'),
   address: address.toString(),
-  policy: {
+  policy: contract === 'generic-verifier' ? {
     appDomainHash: String(profile.appDomainHash),
+    applicationDomain: String(profile.applicationDomain),
     issuerKeyHash: String(profile.issuerKeyHash),
     maxTokenAgeSec: Number(profile.maxTokenAgeSec),
     requirePremium: Boolean(profile.requirePremium),
+  } : {
+    appDomainHash: String(profile.appDomainHash),
+    applicationDomain: String(profile.applicationDomain),
+    issuerKeyHash: String(profile.issuerKeyHash),
+    launchIdHash: String(profile.launchIdHash),
+    maxTokenAgeSec: Number(profile.maxTokenAgeSec),
+    requirePremium: Boolean(profile.requirePremium),
+    maxAuthorizationTtlSec: Number(profile.maxAuthorizationTtlSec),
+    pricePerUnitNano: String(profile.pricePerUnitNano),
+    perIdentityCap: String(profile.perIdentityCap),
+    inventory: String(profile.inventory),
   },
+  expectedFundingNano: expectedFundingNano.toString(),
+  feeCeilingNano: (expectedFundingNano + 200_000_000n).toString(),
+  operatorApprovalReference: profile.operatorApprovalReference || 'PENDING_OPERATOR_INPUT',
   liveMutation: false,
 };
 console.log(JSON.stringify(summary, null, 2));
-

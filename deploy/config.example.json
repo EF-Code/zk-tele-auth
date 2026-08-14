@@ -4,6 +4,11 @@
   "workchain": 0,
   "sourceCommit": "PENDING_OPERATOR_INPUT",
   "artifactManifest": "PENDING_OPERATOR_INPUT",
-  "operatorApprovalReference": "PENDING_OPERATOR_INPUT"
+  "operatorApprovalReference": "PENDING_OPERATOR_INPUT",
+  "launchIdHash": "PENDING_OPERATOR_INPUT",
+  "pricePerUnitNano": "PENDING_OPERATOR_INPUT",
+  "perIdentityCap": "PENDING_OPERATOR_INPUT",
+  "inventory": "PENDING_OPERATOR_INPUT",
+  "acceptedAsset": "native-ton",
+  "refundPolicy": "accounted-credit-pending-reviewed-withdrawal-adapter"
 }
-

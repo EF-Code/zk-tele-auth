@@ -13,16 +13,28 @@
       "types": "./dist/gateway/server.d.ts",
       "import": "./dist/gateway/server.js"
     },
+    "./gateway/config": {
+      "types": "./dist/gateway/config.d.ts",
+      "import": "./dist/gateway/config.js"
+    },
+    "./gateway/secrets": {
+      "types": "./dist/gateway/secrets.d.ts",
+      "import": "./dist/gateway/secrets.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "dist/",
-    "artifacts/*/*.wasm",
-    "artifacts/*/*_final.zkey",
-    "artifacts/*/*_vkey.json",
+    "artifacts/telegram_auth/telegram_auth.wasm",
+    "artifacts/telegram_auth/telegram_auth_final.zkey",
+    "artifacts/telegram_auth/telegram_auth_vkey.json",
+    "artifacts/priva_purchase_auth/priva_purchase_auth.wasm",
+    "artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey",
+    "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json",
+    "artifacts/membership/membership.wasm",
+    "artifacts/membership/membership_final.zkey",
+    "artifacts/membership/membership_vkey.json",
     "artifacts/manifest.json",
-    "contracts/",
-    "circuits/",
     "README.md",
     "LICENSE"
   ],
@@ -33,17 +45,22 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "tsc -p tsconfig.json",
-    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs && node tests/gateway-hardening-tests.mjs && node tests/attestation-tests.mjs",
+    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs && node tests/priva-launchpad-tests.mjs && node tests/gateway-hardening-tests.mjs && node tests/attestation-tests.mjs",
     "check:priva-artifacts": "node scripts/check-priva-artifact-provenance.mjs",
     "check:priva-production": "node scripts/check-production-attestation.mjs",
     "check:priva-composition": "node scripts/check-priva-composition.mjs",
     "artifacts:manifest:write": "node scripts/check-artifact-manifest.mjs --write",
     "artifacts:manifest:check": "node scripts/check-artifact-manifest.mjs",
     "artifacts:verify:production": "node scripts/check-production-attestation.mjs",
+    "artifacts:verify:dev": "node scripts/verify-development-artifacts.mjs",
+    "artifacts:import:production": "node scripts/import-production-artifacts.mjs",
     "release:preflight": "node scripts/release-preflight.mjs",
     "package:consumer-smoke": "npm run build && node tests/package-consumer-smoke.mjs",
+    "supply-chain:hooks": "node scripts/supply-chain-hooks.mjs",
+    "sbom:package": "node scripts/supply-chain-hooks.mjs",
     "start:gateway": "node dist/gateway/main.js",
     "deploy:dry-run": "npm run build && node scripts/deploy-ton.mjs --network testnet --dry-run",
+    "compile:ton": "node scripts/compile-ton-contracts.mjs",
     "deploy:verify-manifest": "node scripts/verify-ton-deployment.mjs",
     "setup:circuits": "node scripts/setup-circuits.cjs",
     "compile-circuits": "node scripts/setup-circuits.cjs"

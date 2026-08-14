@@ -50,7 +50,7 @@ npm test
 
 `npm test` runs real Groth16 proofs, adversarial issuer/policy/replay regressions, private-leaf Merkle membership tests, verifier-key synchronization, and Tolk compilation.
 
-Production work is tracked in [FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md](FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md). The repository includes a generalized artifact manifest, cryptographic attestation verifier, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it is expected to remain non-zero until genuine ceremony, operator, independent-review, launchpad-composition, and testnet evidence exists.
+Production work is tracked in [FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md](FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md). The repository includes a generalized artifact manifest, cryptographic attestation verifier, a composed native-TON Priva launchpad, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it is expected to remain non-zero until genuine ceremony, operator, independent-review, and testnet evidence exists.
 
 ## Configure the issuer gateway
 
@@ -134,11 +134,12 @@ This is a generic whitelist primitive. A production Telegram channel integration
 
 ```bash
 npm run setup:circuits
+npm run artifacts:verify:dev
 ```
 
 This compiles both circuits over BLS12-381 and regenerates the R1CS, WASM, proving key, verification key, and manifests. The repository's phase-2 beacon is deterministic for reproducible development builds.
 
-For production, use a suitable public ceremony or a properly operated multi-party ceremony and independently verify the resulting artifacts. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
+For production, use `npm run artifacts:import:production -- --source-dir <verified-export> --ptau <verified-transcript> --expected-ptau-sha256 <digest> --commit <full-commit> --network <testnet|mainnet> --import` with an independently verified external transcript. The importer never creates ceremony material or marks the manifest approved; a cryptographic signature and independent review are separate gates. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
 
 ### Priva purchase artifact release gate
 
@@ -163,7 +164,7 @@ circuits/       issuer-bound authentication and private membership circuits
 artifacts/      committed development R1CS/WASM/zkey/vkey artifacts
 src/sdk/        proof generation, verification, membership and TON StateInit helpers
 src/gateway/    Telegram HMAC validation and bounded server-side prover
-contracts/      issuer/policy-bound TON Groth16 verifier
+    contracts/      issuer/policy-bound verifiers and composed Priva launchpad
 tests/          cryptographic and adversarial regression tests
 examples/       Telegram Mini App gateway client
 ```

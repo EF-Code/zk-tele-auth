@@ -16,6 +16,7 @@ const circuits = {
       'artifacts/telegram_auth/telegram_auth.wasm',
       'artifacts/telegram_auth/telegram_auth_final.zkey',
       'artifacts/telegram_auth/telegram_auth_vkey.json',
+      'artifacts/telegram_auth/telegram_auth.json',
       'contracts/zk_tele_auth_verifier.tolk',
     ],
   },
@@ -26,8 +27,10 @@ const circuits = {
       'artifacts/priva_purchase_auth/priva_purchase_auth.wasm',
       'artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey',
       'artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json',
+      'artifacts/priva_purchase_auth/priva_purchase_auth.json',
       'contracts/priva_purchase_auth_verifier.tolk',
       'contracts/priva_purchase_auth_verifier_wrapper.tolk',
+      'contracts/priva_purchase_launchpad.tolk',
     ],
   },
   membership: {
@@ -37,6 +40,7 @@ const circuits = {
       'artifacts/membership/membership.wasm',
       'artifacts/membership/membership_final.zkey',
       'artifacts/membership/membership_vkey.json',
+      'artifacts/membership/membership.json',
     ],
   },
 };
@@ -48,10 +52,17 @@ function fail(message) {
 
 function buildManifest() {
   const manifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     type: 'zk-tele-auth-artifact-manifest',
     status: 'development-only',
     generatedBy: 'scripts/check-artifact-manifest.mjs',
+    toolchain: {
+      circom: '2.1.6',
+      snarkjs: '0.7.6',
+      tolk: '1.4.2',
+      exporter: '3.0.2',
+      node: '>=20 <27',
+    },
     circuits: {},
   };
   for (const [name, config] of Object.entries(circuits)) {
@@ -62,7 +73,18 @@ function buildManifest() {
       if (!fs.existsSync(absolutePath)) throw new Error(`missing artifact-manifest file: ${relativePath}`);
       hashes[relativePath] = sha256File(absolutePath, fs);
     }
-    manifest.circuits[name] = { status: 'development-only', files: hashes };
+    const metadataPath = path.join(root, `artifacts/${name}/${name}.json`);
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    const runtimeFiles = Object.fromEntries(Object.entries(hashes).filter(([relativePath]) => /\.(?:wasm|zkey)$|_vkey\.json$/.test(relativePath)));
+    manifest.circuits[name] = {
+      status: 'development-only',
+      circuitVersion: 1,
+      curve: metadata.prime === 'bls12381' ? 'BLS12-381' : metadata.prime,
+      constraints: metadata.constraints,
+      publicSignals: metadata.publicInputs,
+      files: hashes,
+      runtimeFiles,
+    };
   }
   return manifest;
 }

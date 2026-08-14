@@ -23,12 +23,15 @@ This file is intentionally a template. Do not fill it with guesses or secrets. T
 
 - Launchpad address: `PENDING_OPERATOR_INPUT`
 - Launch identifier and canonical encoding: `PENDING_OPERATOR_INPUT`
+- `launchIdHash`: `PENDING_OPERATOR_INPUT` (canonical field element derived from the reviewed launch identifier)
 - Recipient address-binding rule: `PENDING_OPERATOR_INPUT`
 - Accepted asset/payment path: `PENDING_OPERATOR_INPUT`
 - Price/quote and expiry rules: `PENDING_OPERATOR_INPUT`
-- Per-identity cap: `PENDING_OPERATOR_INPUT`
-- Per-launch inventory/cap: `PENDING_OPERATOR_INPUT`
-- Refund and bounce policy: `PENDING_OPERATOR_INPUT`
+- `pricePerUnitNano`: `PENDING_OPERATOR_INPUT` (native TON nanograms, exact decimal integer)
+- `perIdentityCap`: `PENDING_OPERATOR_INPUT` (positive uint64 quantity)
+- `inventory`: `PENDING_OPERATOR_INPUT` (positive uint64 quantity)
+- Refund policy: `accounted-credit-pending-reviewed-withdrawal-adapter`
+- Bounce/downstream settlement policy: `no asynchronous settlement in the current composition; any adapter requires separate review`
 - Upgrade/pause policy: `PENDING_OPERATOR_INPUT`
 
 ## Secrets and operators

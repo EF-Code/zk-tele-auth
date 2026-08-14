@@ -28,8 +28,16 @@ jobs:
         run: npm test
       - name: Artifact manifest check
         run: npm run artifacts:manifest:check
+      - name: Development artifact verification
+        run: npm run artifacts:verify:dev
+      - name: Deterministic TON compilation
+        run: npm run compile:ton
       - name: Package consumer smoke test
         run: npm run package:consumer-smoke
+      - name: Package contents
+        run: npm pack --dry-run --ignore-scripts
+      - name: SBOM and scanner hooks
+        run: npm run sbom:package
       - name: Dependency audit
         run: npm audit --audit-level=high
       - name: Secret signature scan
@@ -48,7 +56,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Build production image
-        run: docker build --pull=false --tag zk-tele-auth:ci .
+        run: docker build --pull=false --build-arg SOURCE_REVISION="$GITHUB_SHA" --build-arg ARTIFACT_MANIFEST_DIGEST="$(sha256sum artifacts/manifest.json | cut -d' ' -f1)" --tag zk-tele-auth:ci .
       - name: Inspect image metadata
         run: docker image inspect zk-tele-auth:ci --format '{{json .Config.Labels}}'
-

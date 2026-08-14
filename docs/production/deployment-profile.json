@@ -15,6 +15,12 @@
   "maxAuthorizationTtlSec": 0,
   "launchpadAddress": "",
   "launchId": "",
+  "launchIdHash": "",
+  "pricePerUnitNano": 0,
+  "perIdentityCap": 0,
+  "inventory": 0,
+  "acceptedAsset": "native-ton",
+  "refundPolicy": "accounted-credit-pending-reviewed-withdrawal-adapter",
   "operatorApprovalReference": "",
   "mainnetApprovalReference": ""
 }

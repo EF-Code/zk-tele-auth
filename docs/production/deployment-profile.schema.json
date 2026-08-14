@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zk-tele-auth.example/schemas/deployment-profile.schema.json",
+  "type": "object",
+  "required": [
+    "schemaVersion", "status", "network", "requiredCircuits", "reviewedCommit",
+    "applicationDomain", "appDomainHash", "issuerKeyHash", "maxTokenAgeSec",
+    "requirePremium", "maxAuthorizationTtlSec", "launchpadAddress", "launchId",
+    "launchIdHash", "pricePerUnitNano", "perIdentityCap", "inventory",
+    "operatorApprovalReference", "mainnetApprovalReference"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["operator-input-required", "approved"] },
+    "network": { "enum": ["", "testnet", "mainnet"] },
+    "requiredCircuits": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "reviewedCommit": { "type": "string" },
+    "applicationDomain": { "type": "string" },
+    "appDomainHash": { "type": "string" },
+    "issuerKeyHash": { "type": "string" },
+    "maxTokenAgeSec": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "requirePremium": { "type": "boolean" },
+    "maxAuthorizationTtlSec": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "launchpadAddress": { "type": "string" },
+    "launchId": { "type": "string" },
+    "launchIdHash": { "type": "string" },
+    "pricePerUnitNano": { "type": "integer", "minimum": 0 },
+    "perIdentityCap": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+    "inventory": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+    "acceptedAsset": { "const": "native-ton" },
+    "refundPolicy": { "type": "string" },
+    "operatorApprovalReference": { "type": "string" },
+    "mainnetApprovalReference": { "type": "string" }
+  },
+  "additionalProperties": true
+}
