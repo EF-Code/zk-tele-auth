@@ -1,0 +1,88 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { sha256File } from './lib/attestation.mjs';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const manifestPath = path.join(root, 'artifacts', 'manifest.json');
+const write = process.argv.includes('--write');
+
+const circuits = {
+  telegram_auth: {
+    source: 'circuits/telegram_auth.circom',
+    files: [
+      'artifacts/telegram_auth/telegram_auth.r1cs',
+      'artifacts/telegram_auth/telegram_auth.wasm',
+      'artifacts/telegram_auth/telegram_auth_final.zkey',
+      'artifacts/telegram_auth/telegram_auth_vkey.json',
+      'contracts/zk_tele_auth_verifier.tolk',
+    ],
+  },
+  priva_purchase_auth: {
+    source: 'circuits/priva_purchase_auth.circom',
+    files: [
+      'artifacts/priva_purchase_auth/priva_purchase_auth.r1cs',
+      'artifacts/priva_purchase_auth/priva_purchase_auth.wasm',
+      'artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey',
+      'artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json',
+      'contracts/priva_purchase_auth_verifier.tolk',
+      'contracts/priva_purchase_auth_verifier_wrapper.tolk',
+    ],
+  },
+  membership: {
+    source: 'circuits/membership.circom',
+    files: [
+      'artifacts/membership/membership.r1cs',
+      'artifacts/membership/membership.wasm',
+      'artifacts/membership/membership_final.zkey',
+      'artifacts/membership/membership_vkey.json',
+    ],
+  },
+};
+
+function fail(message) {
+  console.error(`ERROR: ${message}`);
+  process.exitCode = 1;
+}
+
+function buildManifest() {
+  const manifest = {
+    schemaVersion: 1,
+    type: 'zk-tele-auth-artifact-manifest',
+    status: 'development-only',
+    generatedBy: 'scripts/check-artifact-manifest.mjs',
+    circuits: {},
+  };
+  for (const [name, config] of Object.entries(circuits)) {
+    const files = [config.source, ...config.files];
+    const hashes = {};
+    for (const relativePath of files) {
+      const absolutePath = path.join(root, relativePath);
+      if (!fs.existsSync(absolutePath)) throw new Error(`missing artifact-manifest file: ${relativePath}`);
+      hashes[relativePath] = sha256File(absolutePath, fs);
+    }
+    manifest.circuits[name] = { status: 'development-only', files: hashes };
+  }
+  return manifest;
+}
+
+try {
+  const expected = buildManifest();
+  if (write) {
+    fs.writeFileSync(manifestPath, `${JSON.stringify(expected, null, 2)}\n`);
+    console.log(`wrote ${path.relative(root, manifestPath)}`);
+  } else if (!fs.existsSync(manifestPath)) {
+    fail(`missing ${path.relative(root, manifestPath)}; run npm run artifacts:manifest:write`);
+  } else {
+    const actual = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      fail('artifact manifest is stale or has been edited outside the generator');
+    } else {
+      console.log('✓ artifact manifest matches all source and generated files');
+    }
+  }
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
+}
+
