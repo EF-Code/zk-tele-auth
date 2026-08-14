@@ -1,0 +1,9 @@
+{
+  "network": "testnet",
+  "contract": "generic-verifier",
+  "workchain": 0,
+  "sourceCommit": "PENDING_OPERATOR_INPUT",
+  "artifactManifest": "PENDING_OPERATOR_INPUT",
+  "operatorApprovalReference": "PENDING_OPERATOR_INPUT"
+}
+

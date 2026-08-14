@@ -1,4 +1,5 @@
 import * as http from 'http';
+import * as crypto from 'node:crypto';
 import { InitDataParser } from '../sdk/initdata-parser.js';
 import { ZkAuthProofGenerator } from '../sdk/proof-generator.js';
 import { ZkAuthProofVerifier } from '../sdk/proof-verifier.js';
@@ -17,6 +18,11 @@ export interface ZkTeleAuthGatewayOptions {
   corsOrigin?: string;
   maxBodyBytes?: number;
   maxConcurrentProofs?: number;
+  requestTimeoutMs?: number;
+  headersTimeoutMs?: number;
+  keepAliveTimeoutMs?: number;
+  maxQueueDepth?: number;
+  exposeHttpErrors?: boolean;
   artifactOpts?: ProofArtifactOptions;
 }
 
@@ -59,7 +65,18 @@ export class ZkTeleAuthGateway {
   private corsOrigin?: string;
   private maxBodyBytes: number;
   private maxConcurrentProofs: number;
+  private requestTimeoutMs: number;
+  private headersTimeoutMs: number;
+  private keepAliveTimeoutMs: number;
+  private maxQueueDepth: number;
+  private exposeHttpErrors: boolean;
   private activeProofs = 0;
+  private queuedProofs = 0;
+  private proofSlotWaiters: Array<() => void> = [];
+  private requestCount = 0;
+  private rejectedRequestCount = 0;
+  private completedRequestCount = 0;
+  private failedRequestCount = 0;
   private artifactOpts: ProofArtifactOptions;
 
   constructor(options: ZkTeleAuthGatewayOptions) {
@@ -78,6 +95,11 @@ export class ZkTeleAuthGateway {
     this.corsOrigin = options.corsOrigin;
     this.maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
     this.maxConcurrentProofs = options.maxConcurrentProofs ?? DEFAULT_MAX_CONCURRENT_PROOFS;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
+    this.headersTimeoutMs = options.headersTimeoutMs ?? 10_000;
+    this.keepAliveTimeoutMs = options.keepAliveTimeoutMs ?? 5_000;
+    this.maxQueueDepth = options.maxQueueDepth ?? 0;
+    this.exposeHttpErrors = options.exposeHttpErrors ?? false;
     this.artifactOpts = options.artifactOpts ?? {};
     if (!Number.isSafeInteger(this.maxTokenAgeSec) || this.maxTokenAgeSec <= 0 || this.maxTokenAgeSec > 0xffff_ffff) {
       throw new Error('maxTokenAgeSec must be an integer in 1..2^32-1');
@@ -88,6 +110,32 @@ export class ZkTeleAuthGateway {
     if (!Number.isSafeInteger(this.maxConcurrentProofs) || this.maxConcurrentProofs <= 0) {
       throw new Error('maxConcurrentProofs must be a positive integer');
     }
+    for (const [name, value] of [
+      ['requestTimeoutMs', this.requestTimeoutMs],
+      ['headersTimeoutMs', this.headersTimeoutMs],
+      ['keepAliveTimeoutMs', this.keepAliveTimeoutMs],
+    ] as const) {
+      if (!Number.isSafeInteger(value) || value < 1000) throw new Error(`${name} must be an integer >= 1000`);
+    }
+    if (!Number.isSafeInteger(this.maxQueueDepth) || this.maxQueueDepth < 0) throw new Error('maxQueueDepth must be a non-negative integer');
+  }
+
+  private async acquireProofSlot(): Promise<void> {
+    if (this.activeProofs < this.maxConcurrentProofs) {
+      this.activeProofs += 1;
+      return;
+    }
+    if (this.queuedProofs >= this.maxQueueDepth) throw new Error('prover busy; retry later');
+    this.queuedProofs += 1;
+    await new Promise<void>((resolve) => this.proofSlotWaiters.push(resolve));
+    this.queuedProofs -= 1;
+    this.activeProofs += 1;
+  }
+
+  private releaseProofSlot(): void {
+    this.activeProofs -= 1;
+    const next = this.proofSlotWaiters.shift();
+    if (next) next();
   }
 
   /**
@@ -119,9 +167,7 @@ export class ZkTeleAuthGateway {
     }
     if (raw.auth_date > now + CLOCK_SKEW_SEC) throw new Error('initData auth_date is in the future');
     if (now - raw.auth_date > this.maxTokenAgeSec) throw new Error('Telegram initData expired');
-    if (this.activeProofs >= this.maxConcurrentProofs) throw new Error('prover busy; retry later');
-
-    this.activeProofs += 1;
+    await this.acquireProofSlot();
     try {
       const issuerKeyHash = await this.issuerKeyHash;
 
@@ -159,7 +205,7 @@ export class ZkTeleAuthGateway {
         proofPayload,
       };
     } finally {
-      this.activeProofs -= 1;
+      this.releaseProofSlot();
     }
   }
 
@@ -206,9 +252,7 @@ export class ZkTeleAuthGateway {
     if (request.expiryEpoch < now || request.expiryEpoch - now > this.maxTokenAgeSec) {
       throw new Error('expiryEpoch is outside the gateway authorization window');
     }
-    if (this.activeProofs >= this.maxConcurrentProofs) throw new Error('prover busy; retry later');
-
-    this.activeProofs += 1;
+    await this.acquireProofSlot();
     try {
       const issuerKeyHash = await this.issuerKeyHash;
       const proofPayload = await PrivaPurchaseAuthProofGenerator.generateProof({
@@ -250,7 +294,7 @@ export class ZkTeleAuthGateway {
         proofPayload,
       };
     } finally {
-      this.activeProofs -= 1;
+      this.releaseProofSlot();
     }
   }
 
@@ -259,56 +303,121 @@ export class ZkTeleAuthGateway {
    * Body: { "initData": "query_id=...&user=...&hash=..." }
    */
   createServer(): http.Server {
-    return http.createServer(async (req, res) => {
+    const server = http.createServer(async (req, res) => {
+      const requestId = crypto.randomUUID();
+      this.requestCount += 1;
+      res.setHeader('X-Request-Id', requestId);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'no-store');
       if (this.corsOrigin) res.setHeader('Access-Control-Allow-Origin', this.corsOrigin);
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-      if (req.method === 'OPTIONS') {
+      const pathname = (() => {
+        try { return new URL(req.url || '/', 'http://localhost').pathname; }
+        catch { return ''; }
+      })();
+      if (req.method === 'GET' && pathname === '/livez') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+      }
+      if (req.method === 'GET' && pathname === '/readyz') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ready', activeProofs: this.activeProofs, queuedProofs: this.queuedProofs, maxConcurrentProofs: this.maxConcurrentProofs }));
+        return;
+      }
+      if (req.method === 'GET' && pathname === '/metrics') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
+        res.end([
+          `zk_tele_auth_requests_total ${this.requestCount}`,
+          `zk_tele_auth_requests_completed_total ${this.completedRequestCount}`,
+          `zk_tele_auth_requests_failed_total ${this.failedRequestCount}`,
+          `zk_tele_auth_requests_rejected_total ${this.rejectedRequestCount}`,
+          `zk_tele_auth_active_proofs ${this.activeProofs}`,
+        ].join('\n') + '\n');
+        return;
+      }
+      if (req.method === 'OPTIONS' && (pathname === '/authenticate' || pathname === '/v1/purchase-authorizations')) {
         res.writeHead(204);
         res.end();
         return;
       }
 
-      if (req.method !== 'POST' || (req.url !== '/authenticate' && req.url !== '/v1/purchase-authorizations')) {
+      if (req.method !== 'POST' || (pathname !== '/authenticate' && pathname !== '/v1/purchase-authorizations')) {
+        this.rejectedRequestCount += 1;
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'not found' }));
+        res.end(JSON.stringify({ error: 'not found', code: 'NOT_FOUND' }));
+        return;
+      }
+      const contentType = String(req.headers['content-type'] || '').split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        this.rejectedRequestCount += 1;
+        res.writeHead(415, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'content type must be application/json', code: 'UNSUPPORTED_MEDIA_TYPE' }));
+        return;
+      }
+      if (this.activeProofs + this.queuedProofs >= this.maxConcurrentProofs + this.maxQueueDepth) {
+        this.rejectedRequestCount += 1;
+        res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '1' });
+        res.end(JSON.stringify({ error: 'prover busy; retry later', code: 'PROVER_BUSY' }));
         return;
       }
 
       let body = '';
       let bodyBytes = 0;
       let bodyRejected = false;
+      let ended = false;
+      const rejectBody = (status: number, error: string, code: string) => {
+        if (ended) return;
+        ended = true;
+        this.rejectedRequestCount += 1;
+        res.writeHead(status, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error, code }));
+      };
       req.on('data', (chunk: Buffer) => {
-        if (bodyRejected) return;
+        if (bodyRejected || ended) return;
         bodyBytes += chunk.length;
         if (bodyBytes > this.maxBodyBytes) {
           bodyRejected = true;
-          res.writeHead(413, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'request body too large' }));
+          rejectBody(413, 'request body too large', 'BODY_TOO_LARGE');
           return;
         }
         body += chunk.toString('utf8');
       });
+      req.on('aborted', () => { bodyRejected = true; });
+      req.on('error', () => { bodyRejected = true; rejectBody(400, 'request stream failed', 'REQUEST_STREAM_FAILED'); });
       req.on('end', async () => {
-        if (bodyRejected) return;
+        if (bodyRejected || ended) return;
         try {
           const parsed = JSON.parse(body || '{}');
           const initData = parsed.initData;
           if (typeof initData !== 'string') {
             throw new Error('body must include a string "initData" field');
           }
-          const result = req.url === '/v1/purchase-authorizations'
+          const result = pathname === '/v1/purchase-authorizations'
             ? await this.handlePrivaPurchaseAuthorization(initData, parsed)
             : await this.handleAuthenticate(initData);
+          this.completedRequestCount += 1;
+          ended = true;
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(result));
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           const status = message.startsWith('prover busy') ? 429 : 400;
+          this.failedRequestCount += 1;
+          ended = true;
           res.writeHead(status, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: message }));
+          res.end(JSON.stringify({
+            error: this.exposeHttpErrors ? message : 'request rejected',
+            code: status === 429 ? 'PROVER_BUSY' : 'REQUEST_REJECTED',
+            requestId,
+          }));
         }
       });
     });
+    server.requestTimeout = this.requestTimeoutMs;
+    server.headersTimeout = this.headersTimeoutMs;
+    server.keepAliveTimeout = this.keepAliveTimeoutMs;
+    return server;
   }
 }

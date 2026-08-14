@@ -4,12 +4,47 @@
   "description": "Zero-Knowledge Authentication & Identity Attestation Protocol for Telegram and Web3 dApps",
   "main": "dist/sdk/index.js",
   "types": "dist/sdk/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/sdk/index.d.ts",
+      "import": "./dist/sdk/index.js"
+    },
+    "./gateway": {
+      "types": "./dist/gateway/server.d.ts",
+      "import": "./dist/gateway/server.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/",
+    "artifacts/*/*.wasm",
+    "artifacts/*/*_final.zkey",
+    "artifacts/*/*_vkey.json",
+    "artifacts/manifest.json",
+    "contracts/",
+    "circuits/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20 <27",
+    "npm": ">=10"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "tsc -p tsconfig.json",
-    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs",
+    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs && node tests/gateway-hardening-tests.mjs && node tests/attestation-tests.mjs",
     "check:priva-artifacts": "node scripts/check-priva-artifact-provenance.mjs",
-    "check:priva-production": "node scripts/check-priva-artifact-provenance.mjs --production",
+    "check:priva-production": "node scripts/check-production-attestation.mjs",
+    "check:priva-composition": "node scripts/check-priva-composition.mjs",
+    "artifacts:manifest:write": "node scripts/check-artifact-manifest.mjs --write",
+    "artifacts:manifest:check": "node scripts/check-artifact-manifest.mjs",
+    "artifacts:verify:production": "node scripts/check-production-attestation.mjs",
+    "release:preflight": "node scripts/release-preflight.mjs",
+    "package:consumer-smoke": "npm run build && node tests/package-consumer-smoke.mjs",
+    "start:gateway": "node dist/gateway/main.js",
+    "deploy:dry-run": "npm run build && node scripts/deploy-ton.mjs --network testnet --dry-run",
+    "deploy:verify-manifest": "node scripts/verify-ton-deployment.mjs",
     "setup:circuits": "node scripts/setup-circuits.cjs",
     "compile-circuits": "node scripts/setup-circuits.cjs"
   },

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schemaVersion", "network", "sourceCommit", "artifactManifestDigest", "contract", "address", "codeHash", "dataHash", "verifiedAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "network": { "enum": ["testnet", "mainnet"] },
+    "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "artifactManifestDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "contract": { "type": "string" },
+    "address": { "type": "string" },
+    "codeHash": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "dataHash": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "verifiedAt": { "type": "string", "format": "date-time" },
+    "transaction": { "type": "object" }
+  },
+  "additionalProperties": false
+}
+

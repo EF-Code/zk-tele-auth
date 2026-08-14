@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "status": "operator-input-required",
+  "network": "",
+  "requiredCircuits": [
+    "telegram_auth",
+    "priva_purchase_auth"
+  ],
+  "reviewedCommit": "",
+  "applicationDomain": "",
+  "appDomainHash": "",
+  "issuerKeyHash": "",
+  "maxTokenAgeSec": 0,
+  "requirePremium": false,
+  "maxAuthorizationTtlSec": 0,
+  "launchpadAddress": "",
+  "launchId": "",
+  "operatorApprovalReference": "",
+  "mainnetApprovalReference": ""
+}
