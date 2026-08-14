@@ -9,6 +9,7 @@ export class InitDataParser {
    */
   static parse(initDataQuery: string): { raw: TelegramInitDataRaw; user: ParsedTelegramUser } {
     const params = new URLSearchParams(initDataQuery);
+    if (InitDataParser.hasDuplicateKeys(params)) throw new Error('duplicate initData parameter');
     const hash = params.get('hash') || '';
     const authDateString = params.get('auth_date') || '';
     const auth_date = /^(0|[1-9][0-9]*)$/.test(authDateString) ? Number(authDateString) : Number.NaN;
@@ -41,6 +42,7 @@ export class InitDataParser {
    */
   static validateSignature(initDataQuery: string, botToken: string): boolean {
     const params = new URLSearchParams(initDataQuery);
+    if (InitDataParser.hasDuplicateKeys(params)) return false;
     const hash = params.get('hash');
     if (!hash) return false;
 
@@ -59,5 +61,14 @@ export class InitDataParser {
     const calculatedHash = crypto.hmacSha256Hex(secretKey, dataCheckString);
 
     return crypto.timingSafeHexEqual(calculatedHash, hash);
+  }
+
+  private static hasDuplicateKeys(params: URLSearchParams): boolean {
+    const seen = new Set<string>();
+    for (const [key] of params.entries()) {
+      if (seen.has(key)) return true;
+      seen.add(key);
+    }
+    return false;
   }
 }

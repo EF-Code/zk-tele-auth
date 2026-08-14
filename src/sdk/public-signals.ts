@@ -1,4 +1,5 @@
 import { ZkAuthProofPayload } from './types.js';
+import { assertFieldElement } from './poseidon.js';
 
 export const TELEGRAM_AUTH_PUBLIC_SIGNALS = [
   'nullifierHash',
@@ -36,6 +37,12 @@ function parseBoolean(value: string, name: string): boolean {
   return value === '1';
 }
 
+function parseField(value: string, name: string): string {
+  if (!/^(0|[1-9][0-9]*)$/.test(value)) throw new Error(`${name} must be a canonical field element`);
+  assertFieldElement(BigInt(value), name);
+  return value;
+}
+
 /**
  * Parse the telegram_auth public signals into named fields.
  * The circuit exposes signals in a fixed order (outputs first, then public
@@ -48,13 +55,13 @@ export function parseTelegramAuthPublicSignals(publicSignals: string[]): ParsedP
     );
   }
   return {
-    nullifierHash: publicSignals[0],
+    nullifierHash: parseField(publicSignals[0], 'nullifierHash'),
     isVerified: parseBoolean(publicSignals[1], 'isVerified'),
-    appDomainHash: publicSignals[2],
+    appDomainHash: parseField(publicSignals[2], 'appDomainHash'),
     currentTimestamp: parseSafeInteger(publicSignals[3], 'currentTimestamp'),
     maxTokenAgeSec: parseSafeInteger(publicSignals[4], 'maxTokenAgeSec'),
     isPremiumRequired: parseBoolean(publicSignals[5], 'isPremiumRequired'),
-    issuerKeyHash: publicSignals[6],
+    issuerKeyHash: parseField(publicSignals[6], 'issuerKeyHash'),
   };
 }
 

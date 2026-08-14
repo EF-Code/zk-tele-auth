@@ -564,3 +564,27 @@ fun PrivaPurchaseAuthVerifier.verifyProof(self, msg: PrivaPurchaseAuthVerifierVe
 
     return self.verifyPayload(piA, piB, piC, mutate payload);
 }
+
+/// Parse the public signals once for the composing launchpad.  The launchpad
+/// uses the exact same bounded cell parser as the cryptographic verifier, then
+/// re-checks the application fields before it mutates purchase state.
+fun PrivaPurchaseAuthVerifier.parsePubInputs(self, pubInputsCell: cell): array<int> {
+    val (initialPayload, payloadIsExotic) = pubInputsCell.beginParseSpecial();
+    if (payloadIsExotic || initialPayload.remainingBitsCount() < 8) {
+        throw PrivaPurchaseAuthVerifierErrors.InvalidInputs;
+    }
+    var payload = initialPayload;
+    if (payload.loadUint(8) != self.nPublic) {
+        throw PrivaPurchaseAuthVerifierErrors.InvalidInputs;
+    }
+    PrivaPurchaseAuthVerifier.checkPublicInputsPayloadShape(payload);
+
+    var out: array<int> = [];
+    repeat (self.nPublic) {
+        out.push(PrivaPurchaseAuthVerifier.loadNextPubInput(mutate payload));
+    }
+    if (payload.remainingBitsCount() != 0 || payload.remainingRefsCount() != 0) {
+        throw PrivaPurchaseAuthVerifierErrors.InvalidInputs;
+    }
+    return out;
+}

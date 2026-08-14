@@ -82,7 +82,7 @@ export class PrivaPurchaseAuthProofGenerator {
     if (!Number.isSafeInteger(now) || now < 0) throw new Error('currentTimestamp must be a non-negative safe integer');
     if (!Number.isSafeInteger(inputs.authDate) || inputs.authDate < 0) throw new Error('authDate must be a non-negative safe integer');
     if (!Number.isSafeInteger(inputs.maxTokenAgeSec) || !inputs.maxTokenAgeSec || inputs.maxTokenAgeSec > MAX_UINT32) throw new Error('maxTokenAgeSec must be in 1..2^32-1');
-    if (!Number.isSafeInteger(inputs.expiryEpoch) || inputs.expiryEpoch < now) throw new Error('expiryEpoch must be a safe integer not before currentTimestamp');
+    if (!Number.isSafeInteger(inputs.expiryEpoch) || inputs.expiryEpoch < now || inputs.expiryEpoch > MAX_UINT32) throw new Error('expiryEpoch must be a safe uint32 not before currentTimestamp');
     if (version !== CIRCUIT_VERSION) throw new Error(`unsupported Priva circuit version: ${version}`);
 
     const appDomainHash = await NullifierDeriver.hashAppDomain(inputs.appDomain);

@@ -9,6 +9,7 @@ import {
   NullifierDeriver,
   PrivaPurchaseAuthProofGenerator,
   PrivaPurchaseAuthProofVerifier,
+  parseTelegramAuthPublicSignals,
   ZkAuthProofGenerator,
   ZkAuthProofVerifier,
   generateMembershipProof,
@@ -159,6 +160,12 @@ async function run() {
     assert.strictEqual(InitDataParser.validateSignature(query, botToken), true);
     assert.strictEqual(InitDataParser.validateSignature(query.replace('987654321', '987654322'), botToken), false);
     assert.strictEqual(InitDataParser.validateSignature(`${query.slice(0, -1)}z`, botToken), false);
+    assert.strictEqual(InitDataParser.validateSignature(`${query}&hash=${query.split('hash=')[1]}`, botToken), false);
+    assert.throws(() => InitDataParser.parse(`${query}&user=%7B%22id%22%3A1%7D`), /duplicate/);
+  });
+
+  await test('public signal parsers reject non-canonical field encodings', () => {
+    assert.throws(() => parseTelegramAuthPublicSignals(['00', '1', '1', '0', '1', '0', '1']), /canonical field|field element/);
   });
 
   await test('random issuer secrets are valid positive decimal field elements', () => {

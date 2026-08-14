@@ -1,37 +1,75 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "type": "zk-tele-auth-artifact-manifest",
   "status": "development-only",
   "generatedBy": "scripts/check-artifact-manifest.mjs",
+  "toolchain": {
+    "circom": "2.1.6",
+    "snarkjs": "0.7.6",
+    "tolk": "1.4.2",
+    "exporter": "3.0.2",
+    "node": ">=20 <27"
+  },
   "circuits": {
     "telegram_auth": {
       "status": "development-only",
+      "circuitVersion": 1,
+      "curve": "BLS12-381",
+      "constraints": 1395,
+      "publicSignals": 7,
       "files": {
         "circuits/telegram_auth.circom": "37ef6317fa85936e7db69429ee748e7785184e6b065af52b81b26e6704528564",
         "artifacts/telegram_auth/telegram_auth.r1cs": "3b6c81c767792c45f310a8290b237c9287db325142181cecd58bcdffb00d29da",
         "artifacts/telegram_auth/telegram_auth.wasm": "3f2fae4712f02ffcf26f78a3cb193f915f28d43baa47de171c32055e5681a2bd",
         "artifacts/telegram_auth/telegram_auth_final.zkey": "851a997955f29931242c507156b46956747dca399ff4d0d50ccd9d008693ed9d",
         "artifacts/telegram_auth/telegram_auth_vkey.json": "cc1e1084f9d7fa39ed722c0a51e17b0c32c6e91bf37bfba8850c7f21c4637d9d",
+        "artifacts/telegram_auth/telegram_auth.json": "e3ad952dbb4d9bcaa3437388b6d2fa3f9282528f63603ae003170b58462ccb98",
         "contracts/zk_tele_auth_verifier.tolk": "08e53010b6539d58fb5814eac5904b1be39699380604d7d13428074d6b932e0d"
+      },
+      "runtimeFiles": {
+        "artifacts/telegram_auth/telegram_auth.wasm": "3f2fae4712f02ffcf26f78a3cb193f915f28d43baa47de171c32055e5681a2bd",
+        "artifacts/telegram_auth/telegram_auth_final.zkey": "851a997955f29931242c507156b46956747dca399ff4d0d50ccd9d008693ed9d",
+        "artifacts/telegram_auth/telegram_auth_vkey.json": "cc1e1084f9d7fa39ed722c0a51e17b0c32c6e91bf37bfba8850c7f21c4637d9d"
       }
     },
     "priva_purchase_auth": {
       "status": "development-only",
+      "circuitVersion": 1,
+      "curve": "BLS12-381",
+      "constraints": 5195,
+      "publicSignals": 17,
       "files": {
         "circuits/priva_purchase_auth.circom": "46327835a1ab899b318f5578feefdf18042da427dacc94285acadb7bf32e2d20",
         "artifacts/priva_purchase_auth/priva_purchase_auth.r1cs": "3ed6108350e6cc47b89191801571c2b1b19eb35820914b782b324c86a22c23ec",
         "artifacts/priva_purchase_auth/priva_purchase_auth.wasm": "ce1c459f71de221e71f24255c65a3b69013f54866a065e060815b6cf1353fee3",
         "artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey": "9720cb08ab28d4f4ec9d1af40198ad9eb4121591137970d5f84987e6a5dce2a6",
         "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json": "bde50de738c19ff675d19d09e611aae50247e1658df798b520313acc076466ae",
-        "contracts/priva_purchase_auth_verifier.tolk": "a0e8b8a000e54c3e85f11726545d07f736c2cb2ae59571ca952d95eea50b2a20",
-        "contracts/priva_purchase_auth_verifier_wrapper.tolk": "33f539ee0a276e293fe496378bd81388490c3155f9d217fb0bd76e239f2a62c1"
+        "artifacts/priva_purchase_auth/priva_purchase_auth.json": "b95f8c3a255cb005548f3ff3c7c6caeb14883ea405eef27186f280c81c3d1cb7",
+        "contracts/priva_purchase_auth_verifier.tolk": "75938e9ddb0992727eca638e8667d5fda5888a8b37462ef32dc9fee29ed527c9",
+        "contracts/priva_purchase_auth_verifier_wrapper.tolk": "33f539ee0a276e293fe496378bd81388490c3155f9d217fb0bd76e239f2a62c1",
+        "contracts/priva_purchase_launchpad.tolk": "48dbc04e754390f1715a15a5f272321b6e95640e64fb9550d3599b5a182af331"
+      },
+      "runtimeFiles": {
+        "artifacts/priva_purchase_auth/priva_purchase_auth.wasm": "ce1c459f71de221e71f24255c65a3b69013f54866a065e060815b6cf1353fee3",
+        "artifacts/priva_purchase_auth/priva_purchase_auth_final.zkey": "9720cb08ab28d4f4ec9d1af40198ad9eb4121591137970d5f84987e6a5dce2a6",
+        "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json": "bde50de738c19ff675d19d09e611aae50247e1658df798b520313acc076466ae"
       }
     },
     "membership": {
       "status": "development-only",
+      "circuitVersion": 1,
+      "curve": "BLS12-381",
+      "constraints": 7528,
+      "publicSignals": 2,
       "files": {
         "circuits/membership.circom": "0b4e538946c264c512edc181ca67495d3cade0e723d84c4e6ef091c1c3a12ef9",
         "artifacts/membership/membership.r1cs": "b164ddc432a9f73639b6e41bee0b5259fb22092b29f9aa7dada1a281bcdebcdb",
+        "artifacts/membership/membership.wasm": "e29c759ddd4ffbbaee4395e2e503e19eeacaa1c9cbbcd6624dda60dfb2e0adca",
+        "artifacts/membership/membership_final.zkey": "02b5336ba05e71962c52dd00a8979ac84dbf57a432f29e3e116099c1999501ca",
+        "artifacts/membership/membership_vkey.json": "4566087ac9839ad1e8ec795c56d50524475a57630dcceb29f652c788e54b2167",
+        "artifacts/membership/membership.json": "c833c5e3c1be6ef1205ba1904c8e4378f27ffdac43d125157ba1e2e34dc2d4fa"
+      },
+      "runtimeFiles": {
         "artifacts/membership/membership.wasm": "e29c759ddd4ffbbaee4395e2e503e19eeacaa1c9cbbcd6624dda60dfb2e0adca",
         "artifacts/membership/membership_final.zkey": "02b5336ba05e71962c52dd00a8979ac84dbf57a432f29e3e116099c1999501ca",
         "artifacts/membership/membership_vkey.json": "4566087ac9839ad1e8ec795c56d50524475a57630dcceb29f652c788e54b2167"

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Verify that the checked-in Priva proving artifacts have not changed without
+ * Verify that the checked-in Priva proving artifacts and composed contract have not changed without
  * updating their provenance record. `--production` additionally fails closed
  * unless a separately supplied, reviewed production attestation is present.
  */
