@@ -1,0 +1,13 @@
+.git
+.github
+.env
+.env.*
+node_modules
+dist
+build
+.release-evidence
+deployments
+*.log
+*.ptau
+FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md
+
