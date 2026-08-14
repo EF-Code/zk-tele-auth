@@ -5,6 +5,7 @@
  * unless a separately supplied, reviewed production attestation is present.
  */
 import crypto from 'crypto';
+import { spawnSync } from 'node:child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -46,19 +47,16 @@ if (!fs.existsSync(provenancePath)) {
     } else if (!production) {
       console.log(`✓ Priva artifact provenance verified (${provenance.status})`);
     } else {
-      const attestationPath = path.join(root, 'artifacts', 'priva_purchase_auth', 'production-attestation.json');
-      if (provenance.status !== 'production' || !fs.existsSync(attestationPath)) {
-        fail('Priva proof artifacts are not production-approved: a reviewed production ceremony, signed artifact attestation, and independent audit are required');
-      } else {
-        const attestation = JSON.parse(fs.readFileSync(attestationPath, 'utf8'));
-        if (attestation.schemaVersion !== 1 || attestation.circuit !== provenance.circuit || attestation.status !== 'production-approved') {
-          fail('invalid Priva production attestation');
-        } else if (JSON.stringify(attestation.artifacts) !== JSON.stringify(provenance.artifacts)) {
-          fail('production attestation hashes do not match the deployed Priva artifact set');
-        } else {
-          console.log('✓ Priva proof artifacts have a production attestation');
-        }
-      }
+      // Production approval is intentionally delegated to the shared checker,
+      // which verifies the detached Ed25519 signature, trusted signer policy,
+      // reviewed commit, manifest digest, and every selected circuit hash.
+      // Never treat a JSON status label or the legacy nested attestation path
+      // as production evidence.
+      const check = spawnSync(process.execPath, [path.join(root, 'scripts', 'check-production-attestation.mjs')], {
+        cwd: root,
+        stdio: 'inherit',
+      });
+      if (check.status !== 0) process.exitCode = check.status ?? 1;
     }
   }
 }
