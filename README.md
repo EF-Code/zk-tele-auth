@@ -50,6 +50,8 @@ npm test
 
 `npm test` runs real Groth16 proofs, adversarial issuer/policy/replay regressions, private-leaf Merkle membership tests, verifier-key synchronization, and Tolk compilation.
 
+Production work is tracked in [FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md](FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md). The repository includes a generalized artifact manifest, cryptographic attestation verifier, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it is expected to remain non-zero until genuine ceremony, operator, independent-review, launchpad-composition, and testnet evidence exists.
+
 ## Configure the issuer gateway
 
 Generate the issuer secret once and store it in a secret manager:
@@ -119,6 +121,8 @@ const data = buildTonVerifierStateInitData({
 ```
 
 `contracts/zk_tele_auth_verifier.tolk` checks the Groth16 pairing equation, exact application policy, issuer commitment, chain time, and stable-nullifier replay dictionary. Verification messages must attach at least 0.05 TON.
+
+`npm run deploy:dry-run` only derives a deterministic generic-verifier deployment summary after a complete operator profile is supplied. It never submits a transaction. Mainnet submission and live-state verification require an approved multisig/operator adapter and a committed deployment manifest.
 
 ## Private Merkle membership primitive
 
