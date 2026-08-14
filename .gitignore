@@ -8,3 +8,4 @@ circuits/compiled/
 .env.*
 *.ptau
 build/**
+.release-evidence/**
