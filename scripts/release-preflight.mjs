@@ -5,6 +5,7 @@ import zlib from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { sha256File } from './lib/attestation.mjs';
+import { validateDeploymentProfile } from './lib/deployment-profile.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const reportPath = path.resolve(root, process.env.RELEASE_PREFLIGHT_OUT || 'build/release-preflight.json');
@@ -43,20 +44,14 @@ function gitOutput(args) {
   return result.status === 0 ? result.stdout.trim() : '';
 }
 
-function inspectProfile() {
+function inspectProfile(candidateCommit) {
   try {
     const profile = readJson('docs/production/deployment-profile.json');
-    const serialized = JSON.stringify(profile);
-    const required = [
-      'network', 'reviewedCommit', 'applicationDomain', 'appDomainHash', 'issuerKeyHash',
-      'maxTokenAgeSec', 'maxAuthorizationTtlSec', 'launchpadAddress',
-      'launchId', 'launchIdHash', 'pricePerUnitNano', 'perIdentityCap', 'inventory',
-      'operatorApprovalReference',
-    ];
-    const missing = required.filter((key) => profile[key] === '' || profile[key] === 0 || String(profile[key]) === '0' || String(profile[key]).includes('PENDING'));
-    const policyMismatch = profile.acceptedAsset !== 'native-ton' || profile.refundPolicy !== 'accounted-credit-pending-reviewed-withdrawal-adapter';
-    if (profile.status !== 'approved' || missing.length || policyMismatch || serialized.includes('PENDING_')) {
-      add('operator_profile', 'blocked', `operator deployment profile is incomplete (${missing.join(', ') || 'status/evidence placeholders remain'})`, ['docs/production/deployment-profile.json', 'docs/production/OPERATOR_INPUTS.md']);
+    const validation = validateDeploymentProfile(profile, { candidateCommit, requirePriva: true });
+    if (validation.invalid.length) {
+      add('operator_profile', 'fail', `operator deployment profile is invalid (${validation.invalid.join(', ')})`, ['docs/production/deployment-profile.json', 'docs/production/deployment-profile.schema.json']);
+    } else if (validation.missing.length) {
+      add('operator_profile', 'blocked', `operator deployment profile is incomplete (${validation.missing.join(', ')})`, ['docs/production/deployment-profile.json', 'docs/production/OPERATOR_INPUTS.md']);
     } else {
       add('operator_profile', 'pass', 'operator deployment profile is complete', ['docs/production/deployment-profile.json']);
     }
@@ -190,7 +185,7 @@ try {
   const status = gitOutput(['status', '--porcelain']);
   add('source_revision', head ? 'pass' : 'fail', head ? `release candidate ${head}` : 'unable to resolve Git revision');
   add('clean_worktree', status ? 'fail' : 'pass', status ? 'worktree has uncommitted changes' : 'worktree is clean');
-  inspectProfile();
+  inspectProfile(head);
   inspectRuntime();
   inspectSecrets();
   command('build', ['npm', 'run', 'build']);
