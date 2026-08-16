@@ -45,7 +45,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "tsc -p tsconfig.json",
-    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs && node tests/priva-launchpad-tests.mjs && node tests/gateway-hardening-tests.mjs && node tests/attestation-tests.mjs",
+    "test": "node scripts/run-tests.mjs && node scripts/check-ton-contract.mjs && node scripts/check-priva-purchase-contract.mjs && node tests/ton-contract-tests.mjs && node tests/priva-launchpad-tests.mjs && node tests/deployment-profile-tests.mjs && node tests/gateway-hardening-tests.mjs && node tests/attestation-tests.mjs",
     "check:priva-artifacts": "node scripts/check-priva-artifact-provenance.mjs",
     "check:priva-production": "node scripts/check-production-attestation.mjs",
     "check:priva-composition": "node scripts/check-priva-composition.mjs",
