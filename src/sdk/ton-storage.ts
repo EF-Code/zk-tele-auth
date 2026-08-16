@@ -85,6 +85,7 @@ export function buildPrivaLaunchpadStateInitData(policy: PrivaLaunchpadStateInit
     .storeBit(0)
     .storeBit(0)
     .storeBit(0)
+    .storeBit(0)
     .endCell();
   return beginCell()
     .storeUint(appDomainHash, 256)
