@@ -7,6 +7,7 @@ import { Cell, contractAddress } from '@ton/core';
 import { runTolkCompiler } from '@ton/tolk-js';
 import { buildPrivaLaunchpadStateInitData, buildTonVerifierStateInitData } from '../dist/sdk/ton-storage.js';
 import { sha256File } from './lib/attestation.mjs';
+import { validateDeploymentProfile } from './lib/deployment-profile.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const value = (name, fallback) => {
@@ -28,19 +29,11 @@ if (live) throw new Error('live network mutation is not implemented; use an appr
 if (network === 'mainnet' && !confirmedMainnet) throw new Error('mainnet dry-runs require --confirm-mainnet and remain operator-controlled');
 
 const profile = JSON.parse(fs.readFileSync(path.join(root, 'docs/production/deployment-profile.json'), 'utf8'));
-const required = contract === 'generic-verifier'
-  ? ['network', 'applicationDomain', 'appDomainHash', 'issuerKeyHash', 'maxTokenAgeSec']
-  : ['network', 'applicationDomain', 'appDomainHash', 'issuerKeyHash', 'maxTokenAgeSec', 'maxAuthorizationTtlSec', 'launchIdHash', 'pricePerUnitNano', 'perIdentityCap', 'inventory'];
-for (const key of required) {
-  if (profile[key] === undefined || profile[key] === '' || profile[key] === 0 || String(profile[key]) === '0' || String(profile[key]).includes('PENDING')) throw new Error(`operator profile is incomplete: ${key}`);
-}
+const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
+const profileValidation = validateDeploymentProfile(profile, { candidateCommit: sourceCommit, requirePriva: contract === 'priva-launchpad' });
+if (profileValidation.invalid.length) throw new Error(`operator profile is invalid: ${profileValidation.invalid.join(', ')}`);
+if (profileValidation.missing.length) throw new Error(`operator profile is incomplete: ${profileValidation.missing.join(', ')}`);
 if (profile.network !== network) throw new Error(`operator profile network ${profile.network} does not match --network ${network}`);
-if (contract === 'priva-launchpad') {
-  for (const [name, maximum] of [['pricePerUnitNano', (1n << 64n) - 1n], ['perIdentityCap', 1000000n], ['inventory', 1000000n]]) {
-    const raw = String(profile[name]);
-    if (!/^(0|[1-9][0-9]*)$/.test(raw) || BigInt(raw) <= 0n || BigInt(raw) > maximum) throw new Error(`${name} must be a positive bounded decimal integer`);
-  }
-}
 
 const entrypointFileName = contract === 'generic-verifier' ? 'contracts/zk_tele_auth_verifier.tolk' : 'contracts/priva_purchase_launchpad.tolk';
 const compilation = await runTolkCompiler({
@@ -69,7 +62,6 @@ const data = contract === 'generic-verifier'
   });
 const address = contractAddress(workchain, { code, data });
 const manifestPath = path.join(root, 'artifacts', 'manifest.json');
-const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
 const expectedFundingNano = contract === 'generic-verifier' ? 50_000_000n : 100_000_000n + BigInt(String(profile.pricePerUnitNano));
 const summary = {
   schemaVersion: 1,
