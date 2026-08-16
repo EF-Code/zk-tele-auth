@@ -18,6 +18,7 @@ struct PrivaPurchaseLaunchpadAccounting {
     sold: uint64
     totalRaised: coins
     usedActionNullifiers: map<uint256, uint64>
+    usedQueryIds: map<uint64, bool>
     identityTotals: map<uint256, uint64>
     refundCredits: map<uint256, coins>
 }
@@ -96,6 +97,7 @@ fun PrivaPurchaseLaunchpadStorage.load(): PrivaPurchaseLaunchpadStorage {
                 sold: 0,
                 totalRaised: 0,
                 usedActionNullifiers: [],
+                usedQueryIds: [],
                 identityTotals: [],
                 refundCredits: [],
             }.toCell(),
@@ -186,7 +188,14 @@ fun onInternalMessage(inMsg: InMessage) {
             var next = storage;
             var accounting = next.accounting.load();
             val action = publicSignals.get(1) as uint256;
-            if (!accounting.usedActionNullifiers.addIfNotExists(action, purchase.quantity)) { throw PrivaPurchaseLaunchpadErrors.Replay; }
+            // Action nullifiers prevent proof replay; query IDs additionally
+            // make duplicate message delivery idempotent when a caller
+            // supplies a fresh authorization for an already-used query.
+            if (accounting.usedActionNullifiers.exists(action) || accounting.usedQueryIds.exists(purchase.queryId)) {
+                throw PrivaPurchaseLaunchpadErrors.Replay;
+            }
+            accounting.usedActionNullifiers.set(action, purchase.quantity);
+            accounting.usedQueryIds.set(purchase.queryId, true);
             val identity = publicSignals.get(0) as uint256;
             val previous = accounting.identityTotals.get(identity);
             val alreadyBought: uint64 = previous.isFound ? previous.loadValue() : 0;
@@ -231,6 +240,9 @@ get fun totalRaised(): int { return PrivaPurchaseLaunchpadStorage.load().account
 get fun usedAction(actionNullifier: int): int {
     val r = PrivaPurchaseLaunchpadStorage.load().accounting.load().usedActionNullifiers.get(actionNullifier as uint256);
     return r.isFound ? r.loadValue() : 0;
+}
+get fun usedQuery(queryId: int): int {
+    return PrivaPurchaseLaunchpadStorage.load().accounting.load().usedQueryIds.exists(queryId as uint64) ? 1 : 0;
 }
 get fun identityPurchased(identityNullifier: int): int {
     val r = PrivaPurchaseLaunchpadStorage.load().accounting.load().identityTotals.get(identityNullifier as uint256);
