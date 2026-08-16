@@ -9,6 +9,8 @@ The actual launchpad must call the verifier core in the same atomic purchase tra
 - parse all 17 public signals in circuit order (three circuit outputs plus fourteen policy inputs);
 - bind launch ID, executing launchpad address, recipient, BUY operation, client nonce, expiry, and circuit version;
 - consume `actionNullifier` exactly once;
+- consume each `queryId` exactly once so duplicate message delivery cannot
+  apply a fresh authorization to an already-used request identifier;
 - maintain cumulative purchased amount keyed by `identityNullifier` and launch;
 - enforce configured cap and available inventory independently of client nonce;
 - validate actual sender/recipient and payment/asset/value;
