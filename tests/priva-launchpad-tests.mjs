@@ -55,6 +55,11 @@ class LaunchpadContract {
     return stack.readBigNumber();
   }
 
+  async getUsedQuery(provider, queryId) {
+    const { stack } = await provider.get('usedQuery', [{ type: 'int', value: BigInt(queryId) }]);
+    return stack.readBigNumber();
+  }
+
   async getRefundCredit(provider, recipientHash) {
     const { stack } = await provider.get('refundCredit', [{ type: 'int', value: BigInt(recipientHash) }]);
     return stack.readBigNumber();
@@ -177,6 +182,7 @@ async function run() {
   assert.equal(after.inventory, 3n);
   assert.equal(await contract.getIdentityPurchased(first.payload.identityNullifier), 1n);
   assert.equal(await contract.getUsedAction(first.payload.actionNullifier), 1n);
+  assert.equal(await contract.getUsedQuery(1), 1n);
   const buyerHash = BigInt(`0x${buyer.address.hash.toString('hex')}`);
   assert.equal(await contract.getRefundCredit(buyerHash), toNano('1.2'));
   console.log('  ✓ valid proof, recipient binding, payment, inventory, and accounted refund credit succeed');
@@ -199,6 +205,16 @@ async function run() {
   const secondAccepted = await contract.send(buyer.getSender(), second.body, toNano('2'));
   assert.ok(hasExitCode(secondAccepted, 0));
   assert.equal(await contract.getIdentityPurchased(first.payload.identityNullifier), 2n);
+
+  const duplicateQuery = await contract.send(
+    buyer.getSender(),
+    await bodyFromPayload(second.payload, { queryId: '1', recipient: buyer.address }),
+    toNano('2'),
+  );
+  assert.ok(hasExitCode(duplicateQuery, 276));
+  assert.equal(await contract.getUsedQuery(1), 1n);
+  assert.equal(await contract.getIdentityPurchased(first.payload.identityNullifier), 2n);
+  console.log('  ✓ duplicate query IDs fail closed even with a fresh action authorization');
   const third = await makeProof({
     codeAddress: contract.address,
     launchIdHash,
