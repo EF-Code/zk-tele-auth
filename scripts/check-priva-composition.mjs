@@ -15,6 +15,7 @@ for (const marker of [
   'PrivaPurchaseAuthVerifier.create',
   'verifyProof',
   'usedActionNullifiers',
+  'usedQueryIds',
   'identityTotals',
   'recipient',
   'pricePerUnit',
