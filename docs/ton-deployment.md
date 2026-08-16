@@ -8,7 +8,7 @@
 
 The repository has no `Acton.toml`; the command is an independent source check, not a deployment. Record its exact output in an external evidence bundle.
 
-`node scripts/deploy-ton.mjs --network testnet --contract generic-verifier --dry-run` and `--contract priva-launchpad` compile the selected source, serialize the exact StateInit data, derive the address, and print source/artifact/code/data/policy/funding hashes. The script refuses incomplete operator profiles, implicit modes, live mutations, and unconfirmed mainnet dry-runs. Mainnet is never selected by default.
+`node scripts/deploy-ton.mjs --network testnet --contract generic-verifier --dry-run` and `--contract priva-launchpad` compile the selected source, serialize the exact StateInit data, derive the address, and print source/artifact/code/data/policy/funding hashes. The script validates canonical hashes, addresses, numeric bounds, approvals, and requires `reviewedCommit` to equal the candidate `HEAD`; it refuses incomplete operator profiles, implicit modes, live mutations, and unconfirmed mainnet dry-runs. Mainnet is never selected by default.
 
 The Priva launchpad StateInit commits the application domain, issuer key, launch, freshness/Premium policy, authorization TTL, native-TON price, identity cap, and inventory. Its purchase transition synchronously verifies the 17 public signals, derives the executing basechain address and actual sender limbs, consumes action nullifiers atomically, tracks cumulative identity totals, bounds dictionary growth, and records overpayment as a refundable credit. It deliberately performs no asynchronous token settlement; a jetton/NFT adapter and credit withdrawal need an additional independent economic review.
 
