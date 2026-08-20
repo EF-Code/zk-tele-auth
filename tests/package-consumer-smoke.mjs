@@ -18,9 +18,12 @@ try {
   fs.writeFileSync(consumer, [
     "import * as sdk from 'zk-tele-auth';",
     "import * as gateway from 'zk-tele-auth/gateway';",
+    "import * as ton from 'zk-tele-auth/ton';",
+    "import * as experimentalPriva from 'zk-tele-auth/experimental/priva';",
     "console.log('consumer imports: loaded');",
     "if (typeof sdk.ZkAuthProofVerifier?.verifyProof !== 'function') throw new Error('SDK export missing');",
-    "if (typeof sdk.buildPrivaLaunchpadStateInitData !== 'function') throw new Error('TON export missing');",
+    "if (typeof ton.buildTonVerifierStateInitData !== 'function') throw new Error('TON export missing');",
+    "if (typeof experimentalPriva.buildPrivaLaunchpadStateInitData !== 'function') throw new Error('experimental Priva export missing');",
     "if (typeof gateway.ZkTeleAuthGateway !== 'function') throw new Error('gateway export missing');",
     "const now = Math.floor(Date.now() / 1000);",
     "const issuerSecret = '123456789';",
