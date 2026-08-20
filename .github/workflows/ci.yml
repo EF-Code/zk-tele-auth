@@ -56,6 +56,8 @@ jobs:
         run: npm run test:deployment-templates
       - name: Gateway worker saturation checks
         run: npm run test:gateway-workers
+      - name: Gateway liveness load checks
+        run: npm run test:gateway-load
       - name: Package contents
         run: npm run package:content-check
       - name: SBOM and scanner hooks
