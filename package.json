@@ -74,6 +74,7 @@
     "package:consumer-smoke": "npm run build && node tests/package-consumer-smoke.mjs",
     "test:client": "npm run build && node tests/client-tests.mjs",
     "test:openapi": "node tests/openapi-tests.mjs",
+    "test:ton-consumer": "npm run build && node tests/ton-consumer-tests.mjs",
     "supply-chain:hooks": "node scripts/supply-chain-hooks.mjs",
     "sbom:package": "node scripts/supply-chain-hooks.mjs",
     "start:gateway": "node dist/gateway/main.js",
@@ -102,13 +103,13 @@
     "circomlib": "^2.0.5",
     "poseidon-bls12381": "1.0.2",
     "poseidon-bls12381-circom": "1.0.0",
+    "export-ton-verifier": "^3.0.2",
     "snarkjs": "^0.7.6"
   },
   "devDependencies": {
     "@ton/sandbox": "^0.44.0",
     "@ton/tolk-js": "^1.4.2",
     "@types/node": "^26.1.2",
-    "export-ton-verifier": "^3.0.2",
     "typescript": "^7.0.2"
   },
   "overrides": {
