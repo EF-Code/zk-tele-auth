@@ -88,6 +88,8 @@ export class ZkTeleAuthGateway {
   private rejectedRequestCount = 0;
   private completedRequestCount = 0;
   private failedRequestCount = 0;
+  private proofTimeoutCount = 0;
+  private workerFailureCount = 0;
   private artifactOpts: ProofArtifactOptions;
   private proverPool: ProverExecutor;
   private accepting = true;
@@ -191,6 +193,11 @@ export class ZkTeleAuthGateway {
         work,
         new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error('proof generation timed out')), this.proofTimeoutMs); }),
       ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('timed out')) this.proofTimeoutCount += 1;
+      if (message.includes('prover worker')) this.workerFailureCount += 1;
+      throw error;
     } finally {
       if (timer) clearTimeout(timer);
     }
@@ -430,6 +437,8 @@ export class ZkTeleAuthGateway {
           `zk_tele_auth_requests_failed_total ${this.failedRequestCount}`,
           `zk_tele_auth_requests_rejected_total ${this.rejectedRequestCount}`,
           `zk_tele_auth_active_proofs ${this.activeProofs}`,
+          `zk_tele_auth_proof_timeouts_total ${this.proofTimeoutCount}`,
+          `zk_tele_auth_worker_failures_total ${this.workerFailureCount}`,
         ].join('\n') + '\n');
         return;
       }
