@@ -77,6 +77,7 @@
     "test:openapi": "node tests/openapi-tests.mjs",
     "test:ton-consumer": "npm run build && node tests/ton-consumer-tests.mjs",
     "test:examples": "npm run build && node tests/example-tests.mjs",
+    "test:exports": "npm run build && node tests/exports-tests.mjs",
     "supply-chain:hooks": "node scripts/supply-chain-hooks.mjs",
     "sbom:package": "node scripts/supply-chain-hooks.mjs",
     "start:gateway": "node dist/gateway/main.js",

@@ -34,6 +34,16 @@ jobs:
         run: npm run compile:ton
       - name: Package consumer smoke test
         run: npm run package:consumer-smoke
+      - name: Public package export checks
+        run: npm run test:exports
+      - name: Browser client checks
+        run: npm run test:client
+      - name: OpenAPI contract checks
+        run: npm run test:openapi
+      - name: TON consumer checks
+        run: npm run test:ton-consumer
+      - name: Mini App quickstart checks
+        run: npm run test:examples
       - name: Package contents
         run: npm pack --dry-run --ignore-scripts
       - name: SBOM and scanner hooks
