@@ -47,7 +47,7 @@ function gitOutput(args) {
 function inspectProfile(candidateCommit) {
   try {
     const profile = readJson('docs/production/deployment-profile.json');
-    const validation = validateDeploymentProfile(profile, { candidateCommit, requirePriva: true });
+    const validation = validateDeploymentProfile(profile, { candidateCommit, requirePriva: profile.enableExperimentalPriva === true });
     if (validation.invalid.length) {
       add('operator_profile', 'fail', `operator deployment profile is invalid (${validation.invalid.join(', ')})`, ['docs/production/deployment-profile.json', 'docs/production/deployment-profile.schema.json']);
     } else if (validation.missing.length) {
@@ -126,7 +126,8 @@ function inspectExternalRecords() {
     else add('mainnet_approval', 'pass', 'mainnet approval reference is present in the operator profile', ['docs/production/deployment-profile.json']);
   }
   else add('mainnet_approval', 'not-applicable', 'deployment profile targets testnet/staging; mainnet approval is not yet in scope', ['docs/production/deployment-profile.json']);
-  command('priva_launchpad_composition', ['npm', 'run', 'check:priva-composition'], true, 3);
+  if (profile.enableExperimentalPriva === true) command('priva_launchpad_composition', ['npm', 'run', 'check:priva-composition'], true, 3);
+  else add('priva_launchpad_composition', 'not-applicable', 'experimental Priva is disabled for this stable release profile', ['docs/production/deployment-profile.json']);
 }
 
 function inspectSecrets() {

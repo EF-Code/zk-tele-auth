@@ -51,7 +51,7 @@ export function assertArtifactReadiness(options: {
   if (!fs.existsSync(manifestPath)) throw new Error(`missing artifact manifest: ${manifestPath}`);
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, any>;
   if (manifest.schemaVersion !== 2 || manifest.type !== 'zk-tele-auth-artifact-manifest') throw new Error('artifact manifest schema is invalid');
-  const circuits = options.requiredCircuits || ['telegram_auth', 'priva_purchase_auth'];
+  const circuits = options.requiredCircuits || ['telegram_auth'];
   const manifestDigest = sha256(manifestPath);
   if (manifest.status === 'development-only') {
     if (!options.allowDevelopmentArtifacts) throw new Error('development proving artifacts are not allowed');

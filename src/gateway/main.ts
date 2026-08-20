@@ -8,6 +8,7 @@ async function main(): Promise<void> {
   const artifacts = assertArtifactReadiness({
     artifactsDir: process.env.ZK_TELE_AUTH_ARTIFACTS_DIR,
     allowDevelopmentArtifacts: config.allowDevelopmentArtifacts,
+    requiredCircuits: config.enableExperimentalPriva ? ['telegram_auth', 'priva_purchase_auth'] : ['telegram_auth'],
   });
   const gateway = new ZkTeleAuthGateway(config);
   await gateway.verifyStartupPolicy();

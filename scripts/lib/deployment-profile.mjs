@@ -56,6 +56,7 @@ export function validateDeploymentProfile(profile, { candidateCommit, requirePri
   const invalid = [];
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return { missing: [], invalid: ['profile must be a JSON object'] };
   if (profile.schemaVersion !== 1) invalid.push('schemaVersion must be 1');
+  if (typeof profile.enableExperimentalPriva !== 'boolean') invalid.push('enableExperimentalPriva must be boolean');
   if (profile.status !== 'approved') missing.push('status');
   if (isPlaceholder(profile.network)) missing.push('network');
   else if (!['testnet', 'mainnet'].includes(profile.network)) invalid.push('network must be testnet or mainnet');
@@ -63,6 +64,7 @@ export function validateDeploymentProfile(profile, { candidateCommit, requirePri
   if (!Array.isArray(profile.requiredCircuits) || profile.requiredCircuits.length === 0 || profile.requiredCircuits.some((name) => typeof name !== 'string' || !name)) {
     invalid.push('requiredCircuits must contain circuit names');
   }
+  if (Array.isArray(profile.requiredCircuits) && !profile.requiredCircuits.includes('telegram_auth')) invalid.push('requiredCircuits must include telegram_auth');
   if (!isPlaceholder(profile.reviewedCommit) && !/^[0-9a-f]{40}$/i.test(String(profile.reviewedCommit))) invalid.push('reviewedCommit must be a full 40-character Git commit');
   if (candidateCommit && !isPlaceholder(profile.reviewedCommit) && String(profile.reviewedCommit).toLowerCase() !== String(candidateCommit).toLowerCase()) invalid.push('reviewedCommit does not match the candidate HEAD');
   for (const key of ['appDomainHash', 'issuerKeyHash']) canonicalUnsigned(profile[key], key, UINT256_MAX, invalid, missing);
@@ -72,7 +74,9 @@ export function validateDeploymentProfile(profile, { candidateCommit, requirePri
   else if (/[^\x20-\x7e]/.test(String(profile.applicationDomain))) invalid.push('applicationDomain contains non-printable characters');
   if (isPlaceholder(profile.operatorApprovalReference)) missing.push('operatorApprovalReference');
   if (profile.network === 'mainnet' && isPlaceholder(profile.mainnetApprovalReference)) missing.push('mainnetApprovalReference');
-  if (requirePriva) {
+  const privaRequired = requirePriva || profile.enableExperimentalPriva === true;
+  if (privaRequired) {
+    if (Array.isArray(profile.requiredCircuits) && !profile.requiredCircuits.includes('priva_purchase_auth')) invalid.push('requiredCircuits must include priva_purchase_auth when Priva is enabled');
     boundedUint32(profile.maxAuthorizationTtlSec, 'maxAuthorizationTtlSec', invalid, missing);
     if (profile.acceptedAsset !== 'native-ton') invalid.push('acceptedAsset must be native-ton');
     if (profile.refundPolicy !== 'accounted-credit-pending-reviewed-withdrawal-adapter') invalid.push('refundPolicy must name the reviewed withdrawal-adapter policy');

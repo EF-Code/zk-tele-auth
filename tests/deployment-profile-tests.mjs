@@ -7,6 +7,7 @@ const complete = {
   status: 'approved',
   network: 'testnet',
   requiredCircuits: ['telegram_auth', 'priva_purchase_auth'],
+  enableExperimentalPriva: true,
   reviewedCommit: commit,
   applicationDomain: 'launchpad.zk-tele-auth.io',
   appDomainHash: '123',
@@ -42,6 +43,7 @@ assert.ok(incomplete.missing.includes('inventory'));
 
 const generic = validateDeploymentProfile({
   ...complete,
+  enableExperimentalPriva: false,
   maxAuthorizationTtlSec: 0,
   launchpadAddress: '',
   launchId: '',

@@ -5,15 +5,15 @@
   "required": [
     "schemaVersion", "status", "network", "requiredCircuits", "reviewedCommit",
     "applicationDomain", "appDomainHash", "issuerKeyHash", "maxTokenAgeSec",
-    "requirePremium", "maxAuthorizationTtlSec", "launchpadAddress", "launchId",
-    "launchIdHash", "pricePerUnitNano", "perIdentityCap", "inventory",
-    "operatorApprovalReference", "mainnetApprovalReference"
+    "requirePremium", "operatorApprovalReference", "mainnetApprovalReference",
+    "enableExperimentalPriva"
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
     "status": { "enum": ["operator-input-required", "approved"] },
     "network": { "enum": ["", "testnet", "mainnet"] },
     "requiredCircuits": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "enableExperimentalPriva": { "type": "boolean" },
     "reviewedCommit": { "type": "string" },
     "applicationDomain": { "type": "string" },
     "appDomainHash": { "type": "string" },
