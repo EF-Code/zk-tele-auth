@@ -46,6 +46,8 @@ jobs:
         run: npm run test:examples
       - name: Deployment template checks
         run: npm run test:deployment-templates
+      - name: Gateway worker saturation checks
+        run: npm run test:gateway-workers
       - name: Package contents
         run: npm pack --dry-run --ignore-scripts
       - name: SBOM and scanner hooks

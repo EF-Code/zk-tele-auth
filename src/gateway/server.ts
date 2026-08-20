@@ -6,7 +6,7 @@ import { PrivaPurchaseAuthProofVerifier } from '../sdk/priva-purchase.js';
 import { ProofArtifactOptions, PrivaPurchaseAuthProofPayload, ZkAuthProofPayload } from '../sdk/types.js';
 import { NullifierDeriver } from '../sdk/nullifier.js';
 import { assertFieldElement } from '../sdk/poseidon.js';
-import { ProverPool } from './prover-pool.js';
+import { ProverExecutor, ProverPool } from './prover-pool.js';
 
 export interface ZkTeleAuthGatewayOptions {
   botToken: string;
@@ -30,7 +30,7 @@ export interface ZkTeleAuthGatewayOptions {
   exposeHttpErrors?: boolean;
   artifactOpts?: ProofArtifactOptions;
   /** Inject a bounded pool in tests or a platform-specific worker supervisor. */
-  proverPool?: ProverPool;
+  proverPool?: ProverExecutor;
 }
 
 const DEFAULT_MAX_TOKEN_AGE_SEC = 24 * 60 * 60;
@@ -89,7 +89,7 @@ export class ZkTeleAuthGateway {
   private completedRequestCount = 0;
   private failedRequestCount = 0;
   private artifactOpts: ProofArtifactOptions;
-  private proverPool: ProverPool;
+  private proverPool: ProverExecutor;
   private accepting = true;
   private ready = false;
   private inFlightRequests = 0;

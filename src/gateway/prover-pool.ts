@@ -21,6 +21,12 @@ export interface ProverPoolOptions {
   jobTimeoutMs: number;
 }
 
+export interface ProverExecutor {
+  run(job: AuthenticateProverJob): Promise<ZkAuthProofPayload>;
+  run(job: PrivaProverJob): Promise<PrivaPurchaseAuthProofPayload>;
+  close(): Promise<void>;
+}
+
 interface PendingJob {
   id: number;
   job: ProverJob;
@@ -39,7 +45,7 @@ interface WorkerSlot {
  * of the HTTP event loop; queue admission and per-job timeouts are enforced at
  * both the gateway and worker boundary.
  */
-export class ProverPool {
+export class ProverPool implements ProverExecutor {
   private readonly options: ProverPoolOptions;
   private readonly slots: WorkerSlot[] = [];
   private readonly queue: PendingJob[] = [];
