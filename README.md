@@ -124,6 +124,8 @@ const data = buildTonVerifierStateInitData({
 
 `contracts/zk_tele_auth_verifier.tolk` checks the Groth16 pairing equation, exact application policy, issuer commitment, chain time, and stable-nullifier replay dictionary. Verification messages must attach at least 0.05 TON. Use the stable TON message encoder and wrapper APIs for a complete wallet transaction; do not rely on repository-only test helpers.
 
+The TON cell encoder is a runtime dependency; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for its license and provenance.
+
 `npm run deploy:dry-run` only derives a deterministic generic-verifier deployment summary after a complete operator profile is supplied. It never submits a transaction. Mainnet submission and live-state verification require an approved multisig/operator adapter and a committed deployment manifest.
 
 ## Browser client
