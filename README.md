@@ -4,7 +4,7 @@ Issuer-bound private Telegram authentication for Web3 and TON applications.
 
 The gateway validates Telegram Mini App `initData` with the bot token, then produces a BLS12-381 Groth16 proof. The proof hides the Telegram user ID while binding the claim to an authorized gateway issuer, application domain, freshness policy, and optional Telegram Premium requirement.
 
-For a Priva purchase, use `priva_purchase_auth`, not the generic credential proof. It additionally binds a stable identity nullifier and one-time action nullifier to the launch ID, launchpad, recipient, `BUY` operation, expiry, and circuit version. Its generated Tolk verifier is cryptographic-only and must be composed into the launchpad's state transition; deploying it alone does not enforce caps or replay protection.
+The stable product is issuer-bound Telegram authentication for application backends and TON applications. Priva purchase authorization remains an opt-in experimental research surface under `zk-tele-auth/experimental/priva`; it is not production-supported, not part of the default release profile, and must not be treated as an asset-settlement product.
 
 ## Security model
 
@@ -43,10 +43,12 @@ The proving key is public. Security comes from the private issuer witness and th
 ## Install and validate
 
 ```bash
-npm install
+npm install zk-tele-auth
 npm run build
 npm test
 ```
+
+For repository development, clone the repository and run `npm ci` instead. Published consumers should import package entrypoints rather than deep paths under `dist/`.
 
 `npm test` runs real Groth16 proofs, adversarial issuer/policy/replay regressions, private-leaf Merkle membership tests, verifier-key synchronization, and Tolk compilation.
 
@@ -57,13 +59,13 @@ Production work is tracked in [FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md](FULL_DEPLOYM
 Generate the issuer secret once and store it in a secret manager:
 
 ```bash
-node --input-type=module -e "import { CryptoUtils } from './dist/sdk/index.js'; console.log(CryptoUtils.randomFieldSecret())"
+node --input-type=module -e "import { CryptoUtils } from 'zk-tele-auth'; console.log(CryptoUtils.randomFieldSecret())"
 ```
 
 Create the gateway with an explicit policy:
 
 ```typescript
-import { ZkTeleAuthGateway } from './dist/gateway/server.js';
+import { ZkTeleAuthGateway } from 'zk-tele-auth/gateway';
 
 const gateway = new ZkTeleAuthGateway({
   botToken: process.env.TELEGRAM_BOT_TOKEN!,
@@ -78,14 +80,14 @@ const gateway = new ZkTeleAuthGateway({
 gateway.createServer().listen(8080);
 ```
 
-The HTTP gateway accepts `POST /authenticate` with `{ "initData": "..." }`. It limits request bodies and concurrent proving work. Put normal production rate limiting, TLS, observability, and secret management in front of it.
+The versioned HTTP gateway accepts `POST /v1/authentications` with `{ "schemaVersion": 1, "initData": "..." }`. `POST /authenticate` remains a deprecated compatibility alias for one release line. Use `zk-tele-auth/client` from a browser instead of hand-writing fetch calls. The gateway limits request bodies and proving work; put normal production rate limiting, TLS, observability, and secret management in front of it.
 
 ## Verify off-chain
 
 The application must obtain `issuerKeyHash` out-of-band from its configured issuer; never trust the value supplied inside the proof.
 
 ```typescript
-import { ZkAuthProofVerifier } from './dist/sdk/index.js';
+import { ZkAuthProofVerifier } from 'zk-tele-auth';
 
 const result = await ZkAuthProofVerifier.verifyProof(proofPayload, {
   expectedAppDomain: 'mydapp.example',
@@ -107,7 +109,7 @@ The contract has no configure message. Its immutable domain, issuer, age, and Pr
 import {
   NullifierDeriver,
   buildTonVerifierStateInitData,
-} from './dist/sdk/index.js';
+} from 'zk-tele-auth/ton';
 
 const appDomainHash = await NullifierDeriver.hashAppDomain('mydapp.example');
 const data = buildTonVerifierStateInitData({
@@ -120,9 +122,32 @@ const data = buildTonVerifierStateInitData({
 // Use `data` together with the compiled code cell in the deployment StateInit.
 ```
 
-`contracts/zk_tele_auth_verifier.tolk` checks the Groth16 pairing equation, exact application policy, issuer commitment, chain time, and stable-nullifier replay dictionary. Verification messages must attach at least 0.05 TON.
+`contracts/zk_tele_auth_verifier.tolk` checks the Groth16 pairing equation, exact application policy, issuer commitment, chain time, and stable-nullifier replay dictionary. Verification messages must attach at least 0.05 TON. Use the stable TON message encoder and wrapper APIs for a complete wallet transaction; do not rely on repository-only test helpers.
 
 `npm run deploy:dry-run` only derives a deterministic generic-verifier deployment summary after a complete operator profile is supplied. It never submits a transaction. Mainnet submission and live-state verification require an approved multisig/operator adapter and a committed deployment manifest.
+
+## Browser client
+
+The browser-safe client sends Telegram `initData` to the trusted issuer gateway and validates response/error envelopes without importing Node filesystem or proving code:
+
+```typescript
+import { ZkTeleAuthClient } from 'zk-tele-auth/client';
+
+const auth = new ZkTeleAuthClient({ baseUrl: 'https://auth.example' });
+const result = await auth.authenticate({ initData: window.Telegram.WebApp.initData });
+```
+
+The client does not verify Groth16 proofs in the browser. Verify proofs in an application backend or use the stable TON verifier path.
+
+## Experimental Priva purchase authorization
+
+Priva APIs are intentionally excluded from the stable root export and stable quickstart:
+
+```typescript
+import { PrivaPurchaseAuthProofVerifier } from 'zk-tele-auth/experimental/priva';
+```
+
+The experimental route is disabled by default and cannot be enabled by the production gateway configuration. The current launchpad records native-TON accounting and refundable credits but does not settle jettons/NFTs or provide a reviewed credit-withdrawal adapter. Treat all Priva artifacts, contracts, deployment profiles, and network behavior as experimental until separate ceremony, audit, economic review, and testnet evidence gates pass.
 
 ## Private Merkle membership primitive
 
