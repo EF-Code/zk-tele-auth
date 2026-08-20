@@ -28,6 +28,8 @@ assert.equal(parsed.environment, 'staging');
 assert.equal(parsed.allowDevelopmentArtifacts, true);
 assert.throws(() => loadGatewayConfig(configEnv({ NODE_ENV: 'production', ZK_TELE_AUTH_ALLOW_DEVELOPMENT_ARTIFACTS: '1' })), /development artifacts/);
 assert.throws(() => loadGatewayConfig(configEnv({ ZK_TELE_AUTH_CORS_ORIGIN: '*' })), /explicit HTTPS origin/);
+assert.equal(loadGatewayConfig(configEnv()).enableExperimentalPriva, false);
+assert.throws(() => loadGatewayConfig(configEnv({ NODE_ENV: 'production', ZK_TELE_AUTH_ENABLE_EXPERIMENTAL_PRIVA: '1', ZK_TELE_AUTH_ISSUER_KEY_HASH: '1' })), /experimental Priva/);
 assert.equal(assertArtifactReadiness({ allowDevelopmentArtifacts: true }).status, 'development-only');
 assert.throws(() => assertArtifactReadiness({ allowDevelopmentArtifacts: false }), /development proving artifacts/);
 const mismatchedGateway = new ZkTeleAuthGateway({
@@ -74,6 +76,29 @@ try {
   const notFound = await fetch(`${base}/does-not-exist`);
   assert.equal(notFound.status, 404);
   assert.equal((await notFound.json()).code, 'NOT_FOUND');
+
+  const versioned = await fetch(`${base}/v1/authentications`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://dapp.example' },
+    body: JSON.stringify({ initData: 'not-valid' }),
+  });
+  assert.equal(versioned.status, 401);
+  assert.equal((await versioned.json()).code, 'TELEGRAM_AUTH_REJECTED');
+
+  const legacy = await fetch(`${base}/authenticate`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://dapp.example' },
+    body: JSON.stringify({ initData: 'not-valid' }),
+  });
+  assert.equal(legacy.status, 401);
+  assert.equal(legacy.headers.get('deprecation'), 'true');
+
+  const disabledPriva = await fetch(`${base}/v1/purchase-authorizations`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://dapp.example' },
+    body: JSON.stringify({ initData: 'not-valid' }),
+  });
+  assert.equal(disabledPriva.status, 404);
 
   const unknownField = await fetch(`${base}/authenticate`, {
     method: 'POST',

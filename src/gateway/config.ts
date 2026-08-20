@@ -12,6 +12,7 @@ export interface GatewayRuntimeConfig extends ZkTeleAuthGatewayOptions {
   allowDevelopmentArtifacts: boolean;
   expectedIssuerKeyHash?: string;
   maxAuthorizationTtlSec: number;
+  enableExperimentalPriva: boolean;
 }
 
 function required(env: NodeJS.ProcessEnv, name: string): string {
@@ -67,6 +68,10 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
   if (corsOrigin === '*' || !/^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(corsOrigin)) {
     throw new Error('ZK_TELE_AUTH_CORS_ORIGIN must be one explicit HTTPS origin');
   }
+  const enableExperimentalPriva = boolean(env, 'ZK_TELE_AUTH_ENABLE_EXPERIMENTAL_PRIVA', false);
+  if (currentEnvironment === 'production' && enableExperimentalPriva) {
+    throw new Error('experimental Priva route cannot be enabled in production');
+  }
   return {
     botToken: required(env, 'TELEGRAM_BOT_TOKEN'),
     issuerSecret: required(env, 'ZK_TELE_AUTH_ISSUER_SECRET'),
@@ -87,5 +92,6 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     allowDevelopmentArtifacts,
     expectedIssuerKeyHash,
     maxAuthorizationTtlSec,
+    enableExperimentalPriva,
   };
 }

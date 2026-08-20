@@ -25,6 +25,8 @@ export interface ZkTeleAuthGatewayOptions {
   proofTimeoutMs?: number;
   expectedIssuerKeyHash?: string;
   maxAuthorizationTtlSec?: number;
+  /** Priva is experimental and disabled unless explicitly enabled. */
+  enableExperimentalPriva?: boolean;
   exposeHttpErrors?: boolean;
   artifactOpts?: ProofArtifactOptions;
 }
@@ -75,6 +77,7 @@ export class ZkTeleAuthGateway {
   private proofTimeoutMs: number;
   private expectedIssuerKeyHash?: string;
   private maxAuthorizationTtlSec: number;
+  private enableExperimentalPriva: boolean;
   private exposeHttpErrors: boolean;
   private activeProofs = 0;
   private queuedProofs = 0;
@@ -112,6 +115,7 @@ export class ZkTeleAuthGateway {
     this.proofTimeoutMs = options.proofTimeoutMs ?? 30_000;
     this.expectedIssuerKeyHash = options.expectedIssuerKeyHash;
     this.maxAuthorizationTtlSec = options.maxAuthorizationTtlSec ?? this.maxTokenAgeSec;
+    this.enableExperimentalPriva = options.enableExperimentalPriva ?? false;
     this.exposeHttpErrors = options.exposeHttpErrors ?? false;
     this.artifactOpts = options.artifactOpts ?? {};
     if (!Number.isSafeInteger(this.maxTokenAgeSec) || this.maxTokenAgeSec <= 0 || this.maxTokenAgeSec > 0xffff_ffff) {
@@ -380,7 +384,10 @@ export class ZkTeleAuthGateway {
       res.setHeader('X-Request-Id', requestId);
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Cache-Control', 'no-store');
-      if (this.corsOrigin) res.setHeader('Access-Control-Allow-Origin', this.corsOrigin);
+      if (this.corsOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', this.corsOrigin);
+        res.setHeader('Vary', 'Origin');
+      }
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
       const pathname = (() => {
@@ -409,7 +416,11 @@ export class ZkTeleAuthGateway {
         ].join('\n') + '\n');
         return;
       }
-      if (req.method === 'OPTIONS' && (pathname === '/authenticate' || pathname === '/v1/purchase-authorizations')) {
+      const isLegacyAuthentication = pathname === '/authenticate';
+      const isAuthentication = pathname === '/v1/authentications' || isLegacyAuthentication;
+      const isExperimentalPriva = pathname === '/v1/purchase-authorizations';
+      if (isLegacyAuthentication) res.setHeader('Deprecation', 'true');
+      if (req.method === 'OPTIONS' && (isAuthentication || (isExperimentalPriva && this.enableExperimentalPriva))) {
         const origin = String(req.headers.origin || '');
         if (this.corsOrigin && origin !== this.corsOrigin) {
           res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -421,7 +432,7 @@ export class ZkTeleAuthGateway {
         return;
       }
 
-      if (req.method !== 'POST' || (pathname !== '/authenticate' && pathname !== '/v1/purchase-authorizations')) {
+      if (req.method !== 'POST' || (!isAuthentication && !(isExperimentalPriva && this.enableExperimentalPriva))) {
         this.rejectedRequestCount += 1;
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'not found', code: 'NOT_FOUND' }));
@@ -475,12 +486,12 @@ export class ZkTeleAuthGateway {
         if (bodyRejected || ended) return;
         try {
           const parsed = parseRequestJson(body || '{}');
-          validateRequestSchema(pathname, parsed);
+          validateRequestSchema(pathname, parsed, this.enableExperimentalPriva);
           const initData = parsed.initData;
           if (typeof initData !== 'string') {
             throw new Error('body must include a string "initData" field');
           }
-          const result = pathname === '/v1/purchase-authorizations'
+          const result = isExperimentalPriva
             ? await this.handlePrivaPurchaseAuthorization(initData, parsed as unknown as PrivaPurchaseAuthorizationRequest)
             : await this.handleAuthenticate(initData);
           this.completedRequestCount += 1;
@@ -533,14 +544,16 @@ function parseRequestJson(text: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function validateRequestSchema(pathname: string, parsed: Record<string, unknown>): void {
-  const allowed = pathname === '/authenticate'
+function validateRequestSchema(pathname: string, parsed: Record<string, unknown>, enableExperimentalPriva: boolean): void {
+  const isPriva = pathname === '/v1/purchase-authorizations';
+  if (isPriva && !enableExperimentalPriva) throw new Error('experimental Priva route is disabled');
+  const allowed = !isPriva
     ? new Set(['schemaVersion', 'initData'])
     : new Set(['schemaVersion', 'initData', 'launchIdHash', 'launchpadAddressHi', 'launchpadAddressLo', 'recipientAddressHi', 'recipientAddressLo', 'clientNonce', 'expiryEpoch', 'operation', 'circuitVersion']);
   for (const key of Object.keys(parsed)) if (!allowed.has(key)) throw new Error(`unknown request field: ${key}`);
   if (parsed.schemaVersion !== undefined && parsed.schemaVersion !== 1) throw new Error('unsupported request schema version');
   if (typeof parsed.initData !== 'string' || parsed.initData.length === 0 || parsed.initData.length > 32 * 1024) throw new Error('initData must be a bounded non-empty string');
-  if (pathname === '/v1/purchase-authorizations') {
+  if (isPriva) {
     for (const key of ['launchIdHash', 'launchpadAddressHi', 'launchpadAddressLo', 'recipientAddressHi', 'recipientAddressLo', 'clientNonce']) {
       if (typeof parsed[key] !== 'string' || !/^(0|[1-9][0-9]*)$/.test(parsed[key] as string)) throw new Error(`${key} must be a canonical decimal field`);
     }
