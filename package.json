@@ -92,6 +92,7 @@
     "package:content-check": "npm run build && node scripts/package-content-check.mjs",
     "supply-chain:hooks": "node scripts/supply-chain-hooks.mjs",
     "sbom:package": "node scripts/supply-chain-hooks.mjs",
+    "sbom:package:required": "RELEASE_REQUIRED_TOOLS=1 node scripts/supply-chain-hooks.mjs",
     "start:gateway": "node dist/gateway/main.js",
     "deploy:dry-run": "npm run build && node scripts/deploy-ton.mjs --network testnet --dry-run",
     "compile:ton": "node scripts/compile-ton-contracts.mjs",

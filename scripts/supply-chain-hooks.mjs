@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.join(root, 'build', 'supply-chain');
+const requiredTools = process.env.RELEASE_REQUIRED_TOOLS === '1';
 fs.mkdirSync(outputDir, { recursive: true });
 const packageLock = path.join(root, 'package-lock.json');
 const sbom = {
@@ -23,6 +24,7 @@ for (const [tool, args] of [['syft', ['.', '-o', 'cyclonedx-json']], ['trivy', [
   const probe = spawnSync(tool, ['--version'], { cwd: root, encoding: 'utf8' });
   if (probe.status !== 0) {
     console.log(`${tool}: unavailable (CI/install hook required before release)`);
+    if (requiredTools) process.exitCode = 1;
     continue;
   }
   const run = spawnSync(tool, args, { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
@@ -35,4 +37,5 @@ if (process.env.RELEASE_IMAGE && process.env.COSIGN_SIGN === '1') {
   if (cosign.status !== 0) process.exitCode = 1;
 } else {
   console.log('cosign: signing hook not invoked (set RELEASE_IMAGE and COSIGN_SIGN=1 in a protected release environment)');
+  if (requiredTools) process.exitCode = 1;
 }
