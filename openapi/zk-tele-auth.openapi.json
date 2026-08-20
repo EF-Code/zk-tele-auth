@@ -1,0 +1,106 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "zk-tele-auth gateway",
+    "version": "2.0.0",
+    "description": "Issuer-bound private Telegram authentication gateway. The purchase-authorizations route is experimental and disabled by default."
+  },
+  "servers": [{ "url": "https://auth.example" }],
+  "tags": [
+    { "name": "authentication", "description": "Stable Telegram authentication" },
+    { "name": "operations", "description": "Liveness, readiness, and aggregate metrics" },
+    { "name": "experimental-priva", "description": "Experimental Priva purchase authorization; not production-supported" }
+  ],
+  "paths": {
+    "/v1/authentications": {
+      "post": {
+        "operationId": "authenticate",
+        "tags": ["authentication"],
+        "summary": "Validate Telegram initData and issue a ZK proof",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthenticationRequest" } } } },
+        "responses": {
+          "200": { "description": "Issuer-bound proof", "headers": { "X-Request-Id": { "$ref": "#/components/headers/XRequestId" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthenticationResponse" } } } },
+          "401": { "$ref": "#/components/responses/TelegramRejected" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/RequestRejected" },
+          "429": { "$ref": "#/components/responses/ProverBusy" },
+          "504": { "$ref": "#/components/responses/ProofTimeout" }
+        }
+      }
+    },
+    "/authenticate": {
+      "post": {
+        "deprecated": true,
+        "operationId": "authenticateLegacy",
+        "tags": ["authentication"],
+        "summary": "Deprecated compatibility alias for /v1/authentications",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthenticationRequest" } } } },
+        "responses": {
+          "200": { "description": "Issuer-bound proof", "headers": { "Deprecation": { "schema": { "type": "string", "const": "true" } }, "X-Request-Id": { "$ref": "#/components/headers/XRequestId" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthenticationResponse" } } } },
+          "401": { "$ref": "#/components/responses/TelegramRejected" },
+          "415": { "$ref": "#/components/responses/UnsupportedMediaType" },
+          "422": { "$ref": "#/components/responses/RequestRejected" },
+          "429": { "$ref": "#/components/responses/ProverBusy" },
+          "504": { "$ref": "#/components/responses/ProofTimeout" }
+        }
+      }
+    },
+    "/livez": {
+      "get": {
+        "operationId": "liveness",
+        "tags": ["operations"],
+        "summary": "Cheap process liveness check",
+        "responses": { "200": { "description": "Process is alive", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LivenessResponse" } } } } }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readiness",
+        "tags": ["operations"],
+        "summary": "Gateway configuration and worker readiness",
+        "responses": { "200": { "description": "Ready", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReadinessResponse" } } } }, "503": { "description": "Not ready", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReadinessResponse" } } } } }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics",
+        "tags": ["operations"],
+        "summary": "Aggregate Prometheus metrics",
+        "responses": { "200": { "description": "Aggregate metrics without user or proof data", "content": { "text/plain": { "schema": { "type": "string" } } } } }
+      }
+    },
+    "/v1/purchase-authorizations": {
+      "post": {
+        "deprecated": true,
+        "operationId": "experimentalPrivaPurchaseAuthorization",
+        "tags": ["experimental-priva"],
+        "summary": "Experimental Priva authorization; disabled by default",
+        "description": "This route must not be enabled in production. It does not imply token/NFT settlement or reviewed launchpad economics.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperimentalPrivaRequest" } } } },
+        "responses": { "200": { "description": "Experimental authorization proof", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExperimentalPrivaResponse" } } } }, "404": { "$ref": "#/components/responses/ExperimentalDisabled" }, "422": { "$ref": "#/components/responses/RequestRejected" } }
+      }
+    }
+  },
+  "components": {
+    "headers": { "XRequestId": { "description": "Safe request correlation identifier", "schema": { "type": "string", "format": "uuid" } } },
+    "schemas": {
+      "AuthenticationRequest": { "type": "object", "additionalProperties": false, "required": ["initData"], "properties": { "schemaVersion": { "type": "integer", "const": 1 }, "initData": { "type": "string", "minLength": 1, "maxLength": 32768 } } },
+      "AuthenticationResponse": { "type": "object", "additionalProperties": false, "required": ["success", "nullifierHash", "proofPayload"], "properties": { "success": { "type": "boolean", "const": true }, "nullifierHash": { "$ref": "#/components/schemas/FieldElement" }, "proofPayload": { "$ref": "#/components/schemas/ProofPayload" } } },
+      "ProofPayload": { "type": "object", "required": ["proof", "publicSignals", "nullifierHash", "issuerKeyHash", "appDomainHash"], "properties": { "proof": { "type": "object", "required": ["pi_a", "pi_b", "pi_c", "protocol", "curve"], "properties": { "pi_a": { "type": "array", "items": { "type": "string" } }, "pi_b": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } }, "pi_c": { "type": "array", "items": { "type": "string" } }, "protocol": { "type": "string" }, "curve": { "type": "string" } } }, "publicSignals": { "type": "array", "minItems": 7, "items": { "type": "string" } }, "nullifierHash": { "$ref": "#/components/schemas/FieldElement" }, "appDomainHash": { "$ref": "#/components/schemas/FieldElement" }, "issuerKeyHash": { "$ref": "#/components/schemas/FieldElement" }, "timestamp": { "type": "integer", "minimum": 0 }, "maxTokenAgeSec": { "type": "integer", "minimum": 1 }, "isPremiumRequired": { "type": "boolean" }, "isVerified": { "type": "boolean", "const": true } } },
+      "FieldElement": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+      "GatewayError": { "type": "object", "additionalProperties": false, "required": ["error", "code", "requestId"], "properties": { "error": { "type": "string" }, "code": { "type": "string" }, "requestId": { "type": "string", "format": "uuid" } } },
+      "LivenessResponse": { "type": "object", "additionalProperties": false, "required": ["status"], "properties": { "status": { "type": "string", "const": "ok" } } },
+      "ReadinessResponse": { "type": "object", "additionalProperties": false, "required": ["status"], "properties": { "status": { "type": "string", "enum": ["ready", "not_ready"] }, "activeProofs": { "type": "integer", "minimum": 0 }, "queuedProofs": { "type": "integer", "minimum": 0 }, "maxConcurrentProofs": { "type": "integer", "minimum": 1 } } },
+      "ExperimentalPrivaRequest": { "type": "object", "additionalProperties": false, "required": ["initData", "launchIdHash", "launchpadAddressHi", "launchpadAddressLo", "recipientAddressHi", "recipientAddressLo", "clientNonce", "expiryEpoch", "operation"], "properties": { "schemaVersion": { "type": "integer", "const": 1 }, "initData": { "type": "string", "minLength": 1, "maxLength": 32768 }, "launchIdHash": { "$ref": "#/components/schemas/FieldElement" }, "launchpadAddressHi": { "$ref": "#/components/schemas/FieldElement" }, "launchpadAddressLo": { "$ref": "#/components/schemas/FieldElement" }, "recipientAddressHi": { "$ref": "#/components/schemas/FieldElement" }, "recipientAddressLo": { "$ref": "#/components/schemas/FieldElement" }, "clientNonce": { "$ref": "#/components/schemas/FieldElement" }, "expiryEpoch": { "type": "integer", "minimum": 0 }, "operation": { "type": "string", "const": "BUY" }, "circuitVersion": { "type": "integer", "const": 1 } } },
+      "ExperimentalPrivaResponse": { "type": "object", "required": ["success", "identityNullifier", "actionNullifier", "proofPayload"], "properties": { "success": { "type": "boolean", "const": true }, "identityNullifier": { "$ref": "#/components/schemas/FieldElement" }, "actionNullifier": { "$ref": "#/components/schemas/FieldElement" }, "proofPayload": { "type": "object" } } }
+    },
+    "responses": {
+      "TelegramRejected": { "description": "Telegram signature or freshness rejected", "headers": { "X-Request-Id": { "$ref": "#/components/headers/XRequestId" } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GatewayError" } } } },
+      "UnsupportedMediaType": { "description": "Request must be JSON", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GatewayError" } } } },
+      "RequestRejected": { "description": "Request schema, proof, or policy rejected", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GatewayError" } } } },
+      "ProverBusy": { "description": "Bounded prover queue is full", "headers": { "Retry-After": { "schema": { "type": "string" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GatewayError" } } } },
+      "ProofTimeout": { "description": "Proof generation timed out", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GatewayError" } } } },
+      "ExperimentalDisabled": { "description": "Experimental Priva route is disabled", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GatewayError" } } } }
+    }
+  }
+}
