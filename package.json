@@ -2,6 +2,14 @@
   "name": "zk-tele-auth",
   "version": "2.0.0",
   "description": "Zero-Knowledge Authentication & Identity Attestation Protocol for Telegram and Web3 dApps",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EF-Code/zk-tele-auth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/EF-Code/zk-tele-auth/issues"
+  },
+  "homepage": "https://github.com/EF-Code/zk-tele-auth#readme",
   "main": "dist/sdk/index.js",
   "types": "dist/sdk/index.d.ts",
   "exports": {
@@ -53,6 +61,7 @@
     "artifacts/manifest.json",
     "README.md",
     "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
