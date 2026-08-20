@@ -1,0 +1,21 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set a development bot token in the shell}
+      ZK_TELE_AUTH_ISSUER_SECRET: ${ZK_TELE_AUTH_ISSUER_SECRET:?set a development issuer secret in the shell}
+      ZK_TELE_AUTH_APP_DOMAIN: ${ZK_TELE_AUTH_APP_DOMAIN:-localhost}
+      ZK_TELE_AUTH_CORS_ORIGIN: ${ZK_TELE_AUTH_CORS_ORIGIN:-http://127.0.0.1:3000}
+      ZK_TELE_AUTH_ALLOW_DEVELOPMENT_ARTIFACTS: "1"
+      ZK_TELE_AUTH_HOST: 0.0.0.0
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]

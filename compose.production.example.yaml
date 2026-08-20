@@ -1,0 +1,35 @@
+services:
+  gateway:
+    image: ghcr.io/REPLACE_ORGANIZATION/zk-tele-auth@sha256:REPLACE_WITH_REVIEWED_IMAGE_DIGEST
+    environment:
+      NODE_ENV: production
+      TELEGRAM_BOT_TOKEN_REF: /run/secrets/telegram_bot_token
+      ZK_TELE_AUTH_ISSUER_SECRET_REF: /run/secrets/issuer_secret
+      ZK_TELE_AUTH_APP_DOMAIN: REPLACE_WITH_REVIEWED_APP_DOMAIN
+      ZK_TELE_AUTH_ISSUER_KEY_HASH: REPLACE_WITH_REVIEWED_ISSUER_KEY_HASH
+      ZK_TELE_AUTH_CORS_ORIGIN: https://REPLACE_WITH_REVIEWED_APP_ORIGIN
+      ZK_TELE_AUTH_ALLOW_DEVELOPMENT_ARTIFACTS: "0"
+      ZK_TELE_AUTH_HOST: 0.0.0.0
+      PORT: "8080"
+    secrets:
+      - telegram_bot_token
+      - issuer_secret
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8080/livez').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+secrets:
+  telegram_bot_token:
+    external: true
+  issuer_secret:
+    external: true

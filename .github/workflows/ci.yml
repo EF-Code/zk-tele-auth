@@ -44,6 +44,8 @@ jobs:
         run: npm run test:ton-consumer
       - name: Mini App quickstart checks
         run: npm run test:examples
+      - name: Deployment template checks
+        run: npm run test:deployment-templates
       - name: Package contents
         run: npm pack --dry-run --ignore-scripts
       - name: SBOM and scanner hooks
