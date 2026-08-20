@@ -21,6 +21,10 @@
       "types": "./dist/gateway/secrets.d.ts",
       "import": "./dist/gateway/secrets.js"
     },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
+    },
     "./ton": {
       "types": "./dist/sdk/ton.d.ts",
       "import": "./dist/sdk/ton.js"
