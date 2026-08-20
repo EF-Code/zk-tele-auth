@@ -1,4 +1,5 @@
 import { ZkTeleAuthGatewayOptions } from './server.js';
+import type { SecretProvider } from './secrets.js';
 
 export interface GatewayRuntimeConfig extends ZkTeleAuthGatewayOptions {
   host: string;
@@ -100,4 +101,29 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     maxAuthorizationTtlSec,
     enableExperimentalPriva,
   };
+}
+
+/**
+ * Resolve only explicitly named secret references, then reuse the same strict
+ * configuration validation as environment-backed startup. Providers should
+ * return values from a platform secret manager and never write them to disk.
+ */
+export async function loadGatewayConfigFromSecretProvider(
+  env: NodeJS.ProcessEnv = process.env,
+  provider: SecretProvider,
+): Promise<GatewayRuntimeConfig> {
+  const resolved = { ...env };
+  const references: Array<[string, string]> = [
+    ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_BOT_TOKEN_REF'],
+    ['ZK_TELE_AUTH_ISSUER_SECRET', 'ZK_TELE_AUTH_ISSUER_SECRET_REF'],
+  ];
+  for (const [valueName, referenceName] of references) {
+    if (resolved[valueName]) continue;
+    const reference = resolved[referenceName];
+    if (!reference) continue;
+    const value = await provider.get(reference);
+    if (!value) throw new Error(`${referenceName} did not resolve a secret`);
+    resolved[valueName] = value;
+  }
+  return loadGatewayConfig(resolved);
 }

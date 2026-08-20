@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { ZkTeleAuthGateway } from '../dist/gateway/server.js';
-import { loadGatewayConfig } from '../dist/gateway/config.js';
+import { loadGatewayConfig, loadGatewayConfigFromSecretProvider } from '../dist/gateway/config.js';
 import { assertArtifactReadiness } from '../dist/gateway/artifact-readiness.js';
 import { structuredLog } from '../dist/gateway/secrets.js';
 
@@ -31,6 +31,19 @@ assert.throws(() => loadGatewayConfig(configEnv({ NODE_ENV: 'production', ZK_TEL
 assert.throws(() => loadGatewayConfig(configEnv({ ZK_TELE_AUTH_CORS_ORIGIN: '*' })), /explicit HTTPS origin/);
 assert.equal(loadGatewayConfig(configEnv()).enableExperimentalPriva, false);
 assert.throws(() => loadGatewayConfig(configEnv({ NODE_ENV: 'production', ZK_TELE_AUTH_ENABLE_EXPERIMENTAL_PRIVA: '1', ZK_TELE_AUTH_ISSUER_KEY_HASH: '1' })), /experimental Priva/);
+const providerConfig = await loadGatewayConfigFromSecretProvider({
+  ...configEnv(),
+  TELEGRAM_BOT_TOKEN: undefined,
+  ZK_TELE_AUTH_ISSUER_SECRET: undefined,
+  TELEGRAM_BOT_TOKEN_REF: 'secret/telegram-bot-token',
+  ZK_TELE_AUTH_ISSUER_SECRET_REF: 'secret/issuer-secret',
+}, { get: async (name) => ({
+  'secret/telegram-bot-token': '123456789:token',
+  'secret/issuer-secret': '123456789',
+}[name]) });
+assert.equal(providerConfig.botToken, '123456789:token');
+assert.equal(providerConfig.issuerSecret, '123456789');
+await assert.rejects(() => loadGatewayConfigFromSecretProvider({ ...configEnv(), TELEGRAM_BOT_TOKEN: undefined, TELEGRAM_BOT_TOKEN_REF: 'missing' }, { get: async () => undefined }), /did not resolve/);
 assert.equal(assertArtifactReadiness({ allowDevelopmentArtifacts: true }).status, 'development-only');
 assert.throws(() => assertArtifactReadiness({ allowDevelopmentArtifacts: false }), /development proving artifacts/);
 const mismatchedGateway = new ZkTeleAuthGateway({
