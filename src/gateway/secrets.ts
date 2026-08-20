@@ -14,6 +14,32 @@ export class EnvironmentSecretProvider implements SecretProvider {
   }
 }
 
+/** Resolve a reference to a mounted secret file without ever logging its contents. */
+export class FileSecretProvider implements SecretProvider {
+  async get(reference: string): Promise<string | undefined> {
+    if (!reference.startsWith('/')) return undefined;
+    try {
+      const value = (await fs.readFile(reference, 'utf8')).trim();
+      return value || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+/** Try provider adapters in order, allowing local env and mounted/cloud refs. */
+export class ChainedSecretProvider implements SecretProvider {
+  constructor(private readonly providers: readonly SecretProvider[]) {}
+
+  async get(name: string): Promise<string | undefined> {
+    for (const provider of this.providers) {
+      const value = await provider.get(name);
+      if (value !== undefined) return value;
+    }
+    return undefined;
+  }
+}
+
 export function secretPresence(value: string | undefined): 'present' | 'absent' {
   return value ? 'present' : 'absent';
 }
@@ -36,3 +62,4 @@ export function redactLogFields(value: unknown): unknown {
 export function structuredLog(event: string, fields: Record<string, unknown> = {}): string {
   return JSON.stringify(redactLogFields({ event, ...fields }));
 }
+import * as fs from 'node:fs/promises';

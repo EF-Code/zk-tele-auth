@@ -3,7 +3,7 @@ import http from 'node:http';
 import { ZkTeleAuthGateway } from '../dist/gateway/server.js';
 import { loadGatewayConfig, loadGatewayConfigFromSecretProvider } from '../dist/gateway/config.js';
 import { assertArtifactReadiness } from '../dist/gateway/artifact-readiness.js';
-import { structuredLog } from '../dist/gateway/secrets.js';
+import { ChainedSecretProvider, FileSecretProvider, structuredLog } from '../dist/gateway/secrets.js';
 
 function configEnv(overrides = {}) {
   return {
@@ -44,6 +44,8 @@ const providerConfig = await loadGatewayConfigFromSecretProvider({
 assert.equal(providerConfig.botToken, '123456789:token');
 assert.equal(providerConfig.issuerSecret, '123456789');
 await assert.rejects(() => loadGatewayConfigFromSecretProvider({ ...configEnv(), TELEGRAM_BOT_TOKEN: undefined, TELEGRAM_BOT_TOKEN_REF: 'missing' }, { get: async () => undefined }), /did not resolve/);
+assert.equal(await new ChainedSecretProvider([{ get: async () => undefined }, { get: async (name) => name === 'secret' ? 'resolved' : undefined }]).get('secret'), 'resolved');
+assert.equal(await new FileSecretProvider().get('not-a-file-reference'), undefined);
 assert.equal(assertArtifactReadiness({ allowDevelopmentArtifacts: true }).status, 'development-only');
 assert.throws(() => assertArtifactReadiness({ allowDevelopmentArtifacts: false }), /development proving artifacts/);
 const mismatchedGateway = new ZkTeleAuthGateway({

@@ -1,10 +1,10 @@
 import { loadGatewayConfigFromSecretProvider } from './config.js';
 import { assertArtifactReadiness } from './artifact-readiness.js';
 import { ZkTeleAuthGateway } from './server.js';
-import { EnvironmentSecretProvider, structuredLog, secretPresence } from './secrets.js';
+import { ChainedSecretProvider, EnvironmentSecretProvider, FileSecretProvider, structuredLog, secretPresence } from './secrets.js';
 
 async function main(): Promise<void> {
-  const config = await loadGatewayConfigFromSecretProvider(process.env, new EnvironmentSecretProvider());
+  const config = await loadGatewayConfigFromSecretProvider(process.env, new ChainedSecretProvider([new EnvironmentSecretProvider(), new FileSecretProvider()]));
   const artifacts = assertArtifactReadiness({
     artifactsDir: process.env.ZK_TELE_AUTH_ARTIFACTS_DIR,
     allowDevelopmentArtifacts: config.allowDevelopmentArtifacts,
