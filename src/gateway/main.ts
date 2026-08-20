@@ -29,6 +29,7 @@ async function main(): Promise<void> {
         process.exitCode = 1;
       } else {
         void gateway.drain(config.requestTimeoutMs).then((drained) => {
+          void gateway.close();
           if (!drained) process.exitCode = 1;
           console.log(structuredLog('shutdown_complete', { drained }));
         });

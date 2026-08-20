@@ -1,12 +1,12 @@
 import * as http from 'http';
 import * as crypto from 'node:crypto';
 import { InitDataParser } from '../sdk/initdata-parser.js';
-import { ZkAuthProofGenerator } from '../sdk/proof-generator.js';
 import { ZkAuthProofVerifier } from '../sdk/proof-verifier.js';
-import { PrivaPurchaseAuthProofGenerator, PrivaPurchaseAuthProofVerifier } from '../sdk/priva-purchase.js';
+import { PrivaPurchaseAuthProofVerifier } from '../sdk/priva-purchase.js';
 import { ProofArtifactOptions, PrivaPurchaseAuthProofPayload, ZkAuthProofPayload } from '../sdk/types.js';
 import { NullifierDeriver } from '../sdk/nullifier.js';
 import { assertFieldElement } from '../sdk/poseidon.js';
+import { ProverPool } from './prover-pool.js';
 
 export interface ZkTeleAuthGatewayOptions {
   botToken: string;
@@ -29,6 +29,8 @@ export interface ZkTeleAuthGatewayOptions {
   enableExperimentalPriva?: boolean;
   exposeHttpErrors?: boolean;
   artifactOpts?: ProofArtifactOptions;
+  /** Inject a bounded pool in tests or a platform-specific worker supervisor. */
+  proverPool?: ProverPool;
 }
 
 const DEFAULT_MAX_TOKEN_AGE_SEC = 24 * 60 * 60;
@@ -87,6 +89,7 @@ export class ZkTeleAuthGateway {
   private completedRequestCount = 0;
   private failedRequestCount = 0;
   private artifactOpts: ProofArtifactOptions;
+  private proverPool: ProverPool;
   private accepting = true;
   private ready = false;
   private inFlightRequests = 0;
@@ -118,6 +121,13 @@ export class ZkTeleAuthGateway {
     this.enableExperimentalPriva = options.enableExperimentalPriva ?? false;
     this.exposeHttpErrors = options.exposeHttpErrors ?? false;
     this.artifactOpts = options.artifactOpts ?? {};
+    this.proverPool = options.proverPool ?? new ProverPool({
+      maxWorkers: this.maxConcurrentProofs,
+      // The gateway admission queue owns HTTP overload accounting. Once a
+      // request has acquired a slot, its worker job is dispatched immediately.
+      maxQueueDepth: 0,
+      jobTimeoutMs: this.proofTimeoutMs,
+    });
     if (!Number.isSafeInteger(this.maxTokenAgeSec) || this.maxTokenAgeSec <= 0 || this.maxTokenAgeSec > 0xffff_ffff) {
       throw new Error('maxTokenAgeSec must be an integer in 1..2^32-1');
     }
@@ -155,6 +165,9 @@ export class ZkTeleAuthGateway {
   stopAccepting(): void {
     this.accepting = false;
     if (this.inFlightRequests === 0) this.resolveDrainWaiters();
+  }
+  async close(): Promise<void> {
+    await this.proverPool.close();
   }
   async drain(timeoutMs = this.requestTimeoutMs): Promise<boolean> {
     if (this.inFlightRequests === 0) return true;
@@ -234,8 +247,9 @@ export class ZkTeleAuthGateway {
     try {
       const issuerKeyHash = await this.issuerKeyHash;
 
-      const proofPayload = await this.withProofTimeout(ZkAuthProofGenerator.generateProof(
-        {
+      const proofPayload = await this.withProofTimeout(this.proverPool.run({
+        kind: 'authenticate',
+        inputs: {
           userId: user.id,
           authDate: raw.auth_date,
           isPremium: Boolean(user.is_premium),
@@ -245,8 +259,8 @@ export class ZkTeleAuthGateway {
           isPremiumRequired: this.requirePremium,
           issuerSecret: this.issuerSecret,
         },
-        this.artifactOpts
-      ));
+        artifactOpts: this.artifactOpts,
+      }));
 
       const verification = await ZkAuthProofVerifier.verifyProof(
         proofPayload,
@@ -318,7 +332,9 @@ export class ZkTeleAuthGateway {
     await this.acquireProofSlot();
     try {
       const issuerKeyHash = await this.issuerKeyHash;
-      const proofPayload = await this.withProofTimeout(PrivaPurchaseAuthProofGenerator.generateProof({
+      const proofPayload = await this.withProofTimeout(this.proverPool.run({
+        kind: 'priva',
+        inputs: {
         userId: user.id,
         authDate: raw.auth_date,
         isPremium: Boolean(user.is_premium),
@@ -335,6 +351,7 @@ export class ZkTeleAuthGateway {
         clientNonce: request.clientNonce,
         expiryEpoch: request.expiryEpoch,
         circuitVersion: 1,
+        },
       }));
       const verification = await PrivaPurchaseAuthProofVerifier.verifyProof(proofPayload, {
         expectedAppDomain: this.appDomain,
