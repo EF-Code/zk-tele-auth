@@ -26,6 +26,7 @@ async function listen(server) {
 const parsed = loadGatewayConfig(configEnv());
 assert.equal(parsed.environment, 'staging');
 assert.equal(parsed.allowDevelopmentArtifacts, true);
+assert.equal(loadGatewayConfig(configEnv({ ZK_TELE_AUTH_CORS_ORIGIN: 'http://127.0.0.1:3000' })).corsOrigin, 'http://127.0.0.1:3000');
 assert.throws(() => loadGatewayConfig(configEnv({ NODE_ENV: 'production', ZK_TELE_AUTH_ALLOW_DEVELOPMENT_ARTIFACTS: '1' })), /development artifacts/);
 assert.throws(() => loadGatewayConfig(configEnv({ ZK_TELE_AUTH_CORS_ORIGIN: '*' })), /explicit HTTPS origin/);
 assert.equal(loadGatewayConfig(configEnv()).enableExperimentalPriva, false);

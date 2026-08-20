@@ -51,6 +51,12 @@ function optionalField(value: string | undefined, name: string): string | undefi
   return value;
 }
 
+function validCorsOrigin(value: string, currentEnvironment: GatewayRuntimeConfig['environment']): boolean {
+  if (value === '*') return false;
+  if (/^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(value)) return true;
+  return currentEnvironment !== 'production' && /^http:\/\/(?:localhost|127\.0\.0\.1)(?::[0-9]{1,5})?$/.test(value);
+}
+
 /** Parse production gateway configuration without logging any secret values. */
 export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): GatewayRuntimeConfig {
   const currentEnvironment = environment(env);
@@ -65,8 +71,8 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv = process.env): Gateway
     throw new Error('ZK_TELE_AUTH_ISSUER_KEY_HASH is required in production');
   }
   const corsOrigin = required(env, 'ZK_TELE_AUTH_CORS_ORIGIN');
-  if (corsOrigin === '*' || !/^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(corsOrigin)) {
-    throw new Error('ZK_TELE_AUTH_CORS_ORIGIN must be one explicit HTTPS origin');
+  if (!validCorsOrigin(corsOrigin, currentEnvironment)) {
+    throw new Error('ZK_TELE_AUTH_CORS_ORIGIN must be one explicit HTTPS origin (or local HTTP in non-production)');
   }
   const enableExperimentalPriva = boolean(env, 'ZK_TELE_AUTH_ENABLE_EXPERIMENTAL_PRIVA', false);
   if (currentEnvironment === 'production' && enableExperimentalPriva) {
