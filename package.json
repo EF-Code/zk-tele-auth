@@ -72,6 +72,8 @@
     "artifacts:import:production": "node scripts/import-production-artifacts.mjs",
     "release:preflight": "node scripts/release-preflight.mjs",
     "package:consumer-smoke": "npm run build && node tests/package-consumer-smoke.mjs",
+    "test:client": "npm run build && node tests/client-tests.mjs",
+    "test:openapi": "node tests/openapi-tests.mjs",
     "supply-chain:hooks": "node scripts/supply-chain-hooks.mjs",
     "sbom:package": "node scripts/supply-chain-hooks.mjs",
     "start:gateway": "node dist/gateway/main.js",
