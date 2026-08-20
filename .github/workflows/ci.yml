@@ -57,7 +57,7 @@ jobs:
       - name: Gateway worker saturation checks
         run: npm run test:gateway-workers
       - name: Package contents
-        run: npm pack --dry-run --ignore-scripts
+        run: npm run package:content-check
       - name: SBOM and scanner hooks
         run: npm run sbom:package
       - name: Dependency audit
