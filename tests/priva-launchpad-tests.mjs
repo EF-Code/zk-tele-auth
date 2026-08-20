@@ -11,7 +11,7 @@ import {
   buildPrivaLaunchpadPurchaseBody,
   buildPrivaLaunchpadStateInitData,
   toBasechainAddressLimbs,
-} from '../dist/sdk/index.js';
+} from '../dist/sdk/experimental/priva.js';
 
 const root = process.cwd();
 const DOMAIN = 'launchpad.zk-tele-auth.io';

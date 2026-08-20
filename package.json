@@ -21,6 +21,18 @@
       "types": "./dist/gateway/secrets.d.ts",
       "import": "./dist/gateway/secrets.js"
     },
+    "./ton": {
+      "types": "./dist/sdk/ton.d.ts",
+      "import": "./dist/sdk/ton.js"
+    },
+    "./membership": {
+      "types": "./dist/sdk/membership.d.ts",
+      "import": "./dist/sdk/membership.js"
+    },
+    "./experimental/priva": {
+      "types": "./dist/sdk/experimental/priva.d.ts",
+      "import": "./dist/sdk/experimental/priva.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

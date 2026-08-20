@@ -7,17 +7,19 @@ import {
   buildTonVerifierStateInitData,
   InitDataParser,
   NullifierDeriver,
-  PrivaPurchaseAuthProofGenerator,
-  PrivaPurchaseAuthProofVerifier,
   parseTelegramAuthPublicSignals,
   ZkAuthProofGenerator,
   ZkAuthProofVerifier,
   generateMembershipProof,
   poseidonHash,
   resolveArtifacts,
-  toBasechainAddressLimbs,
   verifyMembershipProof,
 } from '../dist/sdk/index.js';
+import {
+  PrivaPurchaseAuthProofGenerator,
+  PrivaPurchaseAuthProofVerifier,
+  toBasechainAddressLimbs,
+} from '../dist/sdk/experimental/priva.js';
 import { ZkTeleAuthGateway } from '../dist/gateway/server.js';
 import { poseidon2 } from 'poseidon-bls12381';
 
