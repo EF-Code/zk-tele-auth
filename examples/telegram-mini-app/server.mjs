@@ -48,11 +48,15 @@ staticServer.listen(3000, '127.0.0.1', () => {
   console.log('Mini App example at http://127.0.0.1:3000');
 });
 
-function shutdown() {
+async function shutdown() {
   gateway.markNotReady();
   gateway.stopAccepting();
-  staticServer.close();
-  gatewayServer.close();
+  await gateway.close();
+  await Promise.all([
+    new Promise((resolve) => staticServer.close(() => resolve())),
+    new Promise((resolve) => gatewayServer.close(() => resolve())),
+  ]);
 }
-process.once('SIGINT', shutdown);
-process.once('SIGTERM', shutdown);
+for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {
+  void shutdown().finally(() => process.exit(0));
+});
