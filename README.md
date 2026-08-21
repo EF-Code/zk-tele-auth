@@ -52,7 +52,7 @@ For repository development, clone the repository and run `npm ci` instead. Publi
 
 `npm test` runs real Groth16 proofs, adversarial issuer/policy/replay regressions, private-leaf Merkle membership tests, verifier-key synchronization, and Tolk compilation.
 
-The repository includes a generalized artifact manifest, cryptographic attestation verifier, a composed native-TON Priva launchpad, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it is expected to remain non-zero until genuine ceremony, operator, independent-review, and testnet evidence exists.
+The repository includes a generalized artifact manifest, cryptographic attestation verifier, a composed native-TON Priva launchpad, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it remains non-zero until genuine ceremony, operator, attestation, and testnet evidence exists. Independent review is controlled by `independentReviewRequired` in the deployment profile and is explicitly waived for this personal-project profile.
 
 Supply-chain hook behavior and the protected-release prerequisites are documented in [docs/supply-chain.md](docs/supply-chain.md).
 
@@ -168,7 +168,7 @@ npm run artifacts:verify:dev
 
 This compiles both circuits over BLS12-381 and regenerates the R1CS, WASM, proving key, verification key, and manifests. The repository's phase-2 beacon is deterministic for reproducible development builds.
 
-For production, use `npm run artifacts:import:production -- --source-dir <verified-export> --ptau <verified-transcript> --expected-ptau-sha256 <digest> --commit <full-commit> --network <testnet|mainnet> --import` with an independently verified external transcript. The importer never creates ceremony material or marks the manifest approved; a cryptographic signature and independent review are separate gates. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
+For production, use `npm run artifacts:import:production -- --source-dir <verified-export> --ptau <verified-transcript> --expected-ptau-sha256 <digest> --commit <full-commit> --network <testnet|mainnet> --import` with an independently verified external transcript. The importer never creates ceremony material or marks the manifest approved; a cryptographic signature remains mandatory, while independent review follows the deployment profile policy. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
 
 ### Priva purchase artifact release gate
 
@@ -184,7 +184,7 @@ The production gate deliberately fails for the checked-in artifacts:
 npm run check:priva-production
 ```
 
-It may pass only after replacing the development setup with a reviewed public or independently operated MPC ceremony, recording the regenerated artifact hashes in a reviewed `production-attestation.json`, and completing an independent review of the circuit, verifier, and Priva launchpad integration. Do not mark `provenance.json` as production or add an attestation merely to satisfy this command; those records must correspond to the actual ceremony and reviewed deployment artifact set.
+It may pass only after replacing the development setup with a reviewed public or independently operated MPC ceremony and recording the regenerated artifact hashes in a cryptographically signed `production-attestation.json`. If the deployment profile requires independent review, that record must also cover the circuit, verifier, and any enabled Priva launchpad integration. Do not mark `provenance.json` as production or add an attestation merely to satisfy this command; those records must correspond to the actual ceremony and reviewed deployment artifact set.
 
 ## Repository layout
 

@@ -2,6 +2,8 @@
 
 This file is intentionally a template. Do not fill it with guesses or secrets. The release preflight remains blocked until the operator supplies and reviews the deployment-specific values through the approved secret/configuration system.
 
+For this personal project, `docs/production/deployment-profile.json` explicitly sets `independentReviewRequired` to `false`. That makes the independent-review gate `not-applicable`; it does not approve ceremony artifacts, signatures, operator configuration, or network deployment, and it must be changed to `true` for any shared or commercial deployment. Priva's own composition gate remains separate and still requires its dedicated review record if Priva is enabled.
+
 ## Scope
 
 - [ ] Generic Telegram authentication is in scope.
@@ -18,6 +20,7 @@ This file is intentionally a template. Do not fill it with guesses or secrets. T
 - Premium required: `PENDING_OPERATOR_INPUT`
 - Maximum Priva authorization TTL: `PENDING_OPERATOR_INPUT`
 - Circuit versions approved for this release: `PENDING_OPERATOR_INPUT`
+- Independent review required: `false` for this personal project; set `true` before shared/commercial deployment
 
 ## Priva launchpad
 
@@ -48,8 +51,8 @@ This file is intentionally a template. Do not fill it with guesses or secrets. T
 
 - Ceremony/transcript review reference: `PENDING_EXTERNAL_EVIDENCE`
 - Production artifact attestation reference: `PENDING_EXTERNAL_EVIDENCE`
-- Independent circuit/verifier review: `PENDING_EXTERNAL_EVIDENCE`
-- Independent launchpad/economic review: `PENDING_EXTERNAL_EVIDENCE`
+- Independent circuit/verifier review: `NOT_APPLICABLE_FOR_PERSONAL_PROJECT` while `independentReviewRequired` is `false`
+- Independent launchpad/economic review: `NOT_APPLICABLE_FOR_PERSONAL_PROJECT` while `independentReviewRequired` is `false`; required if Priva is enabled
 - Gateway/infrastructure review: `PENDING_EXTERNAL_EVIDENCE`
 - Testnet deployment manifest: `PENDING_EXTERNAL_EVIDENCE`
 - Testnet canary/replay evidence: `PENDING_EXTERNAL_EVIDENCE`

@@ -57,6 +57,7 @@ export function validateDeploymentProfile(profile, { candidateCommit, requirePri
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return { missing: [], invalid: ['profile must be a JSON object'] };
   if (profile.schemaVersion !== 1) invalid.push('schemaVersion must be 1');
   if (typeof profile.enableExperimentalPriva !== 'boolean') invalid.push('enableExperimentalPriva must be boolean');
+  if (typeof profile.independentReviewRequired !== 'boolean') invalid.push('independentReviewRequired must be boolean');
   if (profile.status !== 'approved') missing.push('status');
   if (isPlaceholder(profile.network)) missing.push('network');
   else if (!['testnet', 'mainnet'].includes(profile.network)) invalid.push('network must be testnet or mainnet');

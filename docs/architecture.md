@@ -13,4 +13,4 @@ Public proof signals include policy commitments, timestamps, action routing fiel
 
 ## Current implementation boundary
 
-The generic verifier, Priva verifier core, and composed native-TON launchpad are implemented and locally sandbox-tested. The standalone wrapper remains a cryptographic primitive and must never be deployed as a launchpad. Production approval still requires independent review of the composition and economics, a verified ceremony, signed attestation, operator profile, and real testnet evidence.
+The generic verifier, Priva verifier core, and composed native-TON launchpad are implemented and locally sandbox-tested. The standalone wrapper remains a cryptographic primitive and must never be deployed as a launchpad. Production approval still requires a verified ceremony, signed attestation, complete operator profile, and real testnet evidence. Independent review is controlled by the deployment profile for this personal project; enabling Priva still requires its dedicated composition review gate.

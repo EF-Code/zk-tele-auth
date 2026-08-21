@@ -97,7 +97,9 @@ function inspectExternalRecords() {
     add('external_records', 'fail', error instanceof Error ? error.message : String(error));
     return;
   }
-  if (!fs.existsSync(review)) {
+  if (profile.independentReviewRequired === false) {
+    add('independent_review', 'not-applicable', 'independent review is explicitly waived for this personal-project profile', ['docs/production/deployment-profile.json', 'docs/production/OPERATOR_INPUTS.md']);
+  } else if (!fs.existsSync(review)) {
     add('independent_review', 'blocked', 'independent review record is absent', ['docs/production/independent-review.json']);
   } else {
     try {

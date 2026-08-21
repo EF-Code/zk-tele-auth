@@ -6,6 +6,7 @@
     "telegram_auth"
   ],
   "enableExperimentalPriva": false,
+  "independentReviewRequired": false,
   "reviewedCommit": "",
   "applicationDomain": "",
   "appDomainHash": "",

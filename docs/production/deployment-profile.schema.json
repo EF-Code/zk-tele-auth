@@ -6,7 +6,7 @@
     "schemaVersion", "status", "network", "requiredCircuits", "reviewedCommit",
     "applicationDomain", "appDomainHash", "issuerKeyHash", "maxTokenAgeSec",
     "requirePremium", "operatorApprovalReference", "mainnetApprovalReference",
-    "enableExperimentalPriva"
+    "enableExperimentalPriva", "independentReviewRequired"
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
@@ -14,6 +14,7 @@
     "network": { "enum": ["", "testnet", "mainnet"] },
     "requiredCircuits": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "enableExperimentalPriva": { "type": "boolean" },
+    "independentReviewRequired": { "type": "boolean" },
     "reviewedCommit": { "type": "string" },
     "applicationDomain": { "type": "string" },
     "appDomainHash": { "type": "string" },
