@@ -4,6 +4,8 @@ This file is intentionally a template. Do not fill it with guesses or secrets. T
 
 For this personal project, `docs/production/deployment-profile.json` explicitly sets `independentReviewRequired` to `false`. That makes the independent-review gate `not-applicable`; it does not approve ceremony artifacts, signatures, operator configuration, or network deployment, and it must be changed to `true` for any shared or commercial deployment. Priva's own composition gate remains separate and still requires its dedicated review record if Priva is enabled.
 
+The same personal stable profile sets `productionAttestationRequired` to `false`, which makes the external signed-attestation gate `not-applicable`. This is a self-managed release waiver, not a cryptographic approval: the production artifact manifest must still come from a genuine reviewed ceremony export, and the waiver is rejected for mainnet or Priva deployments.
+
 ## Scope
 
 - [ ] Generic Telegram authentication is in scope.
@@ -21,6 +23,7 @@ For this personal project, `docs/production/deployment-profile.json` explicitly 
 - Maximum Priva authorization TTL: `PENDING_OPERATOR_INPUT`
 - Circuit versions approved for this release: `PENDING_OPERATOR_INPUT`
 - Independent review required: `false` for this personal project; set `true` before shared/commercial deployment
+- External production attestation required: `false` for this personal stable profile; set `true` before shared/commercial deployment
 
 ## Priva launchpad
 
@@ -51,6 +54,7 @@ For this personal project, `docs/production/deployment-profile.json` explicitly 
 
 - Ceremony/transcript review reference: `PENDING_EXTERNAL_EVIDENCE`
 - Production artifact attestation reference: `PENDING_EXTERNAL_EVIDENCE`
+- Production attestation policy: `NOT_APPLICABLE_FOR_PERSONAL_PROJECT` while `productionAttestationRequired` is `false`
 - Independent circuit/verifier review: `NOT_APPLICABLE_FOR_PERSONAL_PROJECT` while `independentReviewRequired` is `false`
 - Independent launchpad/economic review: `NOT_APPLICABLE_FOR_PERSONAL_PROJECT` while `independentReviewRequired` is `false`; required if Priva is enabled
 - Gateway/infrastructure review: `PENDING_EXTERNAL_EVIDENCE`

@@ -5,7 +5,7 @@ Production evidence is kept outside ordinary development artifacts and must be l
 The following are external gates and must not be fabricated by CI or an AI agent:
 
 - an independently verified BLS12-381 ceremony/transcript;
-- a signed production artifact attestation from a trusted reviewer key;
+- a signed production artifact attestation from a trusted reviewer key when `productionAttestationRequired` is `true` (the personal stable profile explicitly waives this gate, which lowers assurance);
 - an independent review of circuits, generated verifier, and actual launchpad composition when `independentReviewRequired` is `true` (the personal-project profile explicitly waives this gate; Priva still has a separate composition gate);
 - a testnet deployment and canary transaction evidence;
 - operator/multisig approval for any mainnet mutation.

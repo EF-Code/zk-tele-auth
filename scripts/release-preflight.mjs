@@ -71,7 +71,9 @@ function inspectProductionEvidence() {
       add('production_artifacts', 'pass', 'production artifact manifest is approved', ['artifacts/manifest.json']);
     }
     const attestationPath = path.join(root, 'artifacts', 'production-attestation.json');
-    if (!fs.existsSync(attestationPath)) {
+    if (profile.productionAttestationRequired === false) {
+      add('signed_attestation', 'not-applicable', 'external production attestation is explicitly waived for this personal-project profile', ['docs/production/deployment-profile.json', 'docs/production/OPERATOR_INPUTS.md']);
+    } else if (!fs.existsSync(attestationPath)) {
       add('signed_attestation', 'blocked', 'signed production artifact attestation is absent', ['artifacts/production-attestation.json']);
     } else {
       const check = spawnSync(process.execPath, [path.join(root, 'scripts', 'check-production-attestation.mjs')], { cwd: root, encoding: 'utf8' });

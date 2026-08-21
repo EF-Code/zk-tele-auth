@@ -58,8 +58,11 @@ export function validateDeploymentProfile(profile, { candidateCommit, requirePri
   if (profile.schemaVersion !== 1) invalid.push('schemaVersion must be 1');
   if (typeof profile.enableExperimentalPriva !== 'boolean') invalid.push('enableExperimentalPriva must be boolean');
   if (typeof profile.independentReviewRequired !== 'boolean') invalid.push('independentReviewRequired must be boolean');
+  if (typeof profile.productionAttestationRequired !== 'boolean') invalid.push('productionAttestationRequired must be boolean');
   if (profile.independentReviewRequired === false && profile.network === 'mainnet') invalid.push('independentReviewRequired must be true for mainnet');
   if (profile.independentReviewRequired === false && profile.enableExperimentalPriva === true) invalid.push('independentReviewRequired must be true when Priva is enabled');
+  if (profile.productionAttestationRequired === false && profile.network === 'mainnet') invalid.push('productionAttestationRequired must be true for mainnet');
+  if (profile.productionAttestationRequired === false && profile.enableExperimentalPriva === true) invalid.push('productionAttestationRequired must be true when Priva is enabled');
   if (profile.status !== 'approved') missing.push('status');
   if (isPlaceholder(profile.network)) missing.push('network');
   else if (!['testnet', 'mainnet'].includes(profile.network)) invalid.push('network must be testnet or mainnet');

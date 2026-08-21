@@ -9,6 +9,7 @@ const complete = {
   requiredCircuits: ['telegram_auth', 'priva_purchase_auth'],
   enableExperimentalPriva: true,
   independentReviewRequired: true,
+  productionAttestationRequired: true,
   reviewedCommit: commit,
   applicationDomain: 'launchpad.zk-tele-auth.io',
   appDomainHash: '123',
@@ -48,10 +49,17 @@ assert.ok(privaWithoutReview.invalid.some((message) => message.includes('when Pr
 const mainnetWithoutReview = validateDeploymentProfile({ ...complete, network: 'mainnet', independentReviewRequired: false }, { candidateCommit: commit, requirePriva: true });
 assert.ok(mainnetWithoutReview.invalid.some((message) => message.includes('for mainnet')));
 
+const mainnetWithoutAttestation = validateDeploymentProfile({ ...complete, network: 'mainnet', productionAttestationRequired: false }, { candidateCommit: commit, requirePriva: true });
+assert.ok(mainnetWithoutAttestation.invalid.some((message) => message.includes('productionAttestationRequired must be true for mainnet')));
+
+const privaWithoutAttestation = validateDeploymentProfile({ ...complete, productionAttestationRequired: false }, { candidateCommit: commit, requirePriva: true });
+assert.ok(privaWithoutAttestation.invalid.some((message) => message.includes('productionAttestationRequired must be true when Priva is enabled')));
+
 const generic = validateDeploymentProfile({
   ...complete,
   enableExperimentalPriva: false,
   independentReviewRequired: false,
+  productionAttestationRequired: false,
   maxAuthorizationTtlSec: 0,
   launchpadAddress: '',
   launchId: '',
