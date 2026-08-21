@@ -3,7 +3,7 @@
  * Import externally generated artifacts only after an operator supplies a
  * verified transcript hash.  This command never creates ceremony material,
  * never copies a ptau into Git, and never marks artifacts production-approved;
- * a signed attestation and independent review are separate gates.
+ * a signed attestation and any required independent review are separate gates.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,6 +33,7 @@ const ptau = arg('--ptau');
 const expectedPtauHash = arg('--expected-ptau-sha256');
 const commit = arg('--commit');
 const network = arg('--network');
+const circuitsArg = arg('--circuits') || 'telegram_auth,priva_purchase_auth,membership';
 const importFiles = process.argv.includes('--import');
 if (!sourceDir || !ptau || !expectedPtauHash || !commit || !network) throw new Error('--source-dir, --ptau, --expected-ptau-sha256, --commit, and --network are required');
 if (!/^[0-9a-f]{64}$/i.test(expectedPtauHash)) throw new Error('--expected-ptau-sha256 must be a 64-character hex digest');
@@ -40,10 +41,14 @@ if (!/^[0-9a-f]{40}$/i.test(commit)) throw new Error('--commit must be a full Gi
 if (!['testnet', 'mainnet'].includes(network)) throw new Error('--network must be testnet or mainnet');
 const absoluteSource = path.resolve(sourceDir);
 const absolutePtau = path.resolve(ptau);
+const allowedCircuits = new Set(['telegram_auth', 'priva_purchase_auth', 'membership']);
+const circuits = [...new Set(circuitsArg.split(',').map((name) => name.trim()).filter(Boolean))];
+if (circuits.length === 0 || circuits.some((circuit) => !allowedCircuits.has(circuit))) {
+  throw new Error('--circuits must be a comma-separated list containing only telegram_auth, priva_purchase_auth, or membership');
+}
 if (!fs.existsSync(absolutePtau)) throw new Error('phase-one transcript is missing');
 const ptauHash = crypto.createHash('sha256').update(fs.readFileSync(absolutePtau)).digest('hex');
 if (ptauHash !== expectedPtauHash.toLowerCase()) throw new Error('phase-one transcript digest does not match the independently reviewed expected hash');
-const circuits = ['telegram_auth', 'priva_purchase_auth', 'membership'];
 const copied = [];
 for (const circuit of circuits) {
   const source = path.join(absoluteSource, circuit);

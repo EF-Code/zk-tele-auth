@@ -168,7 +168,7 @@ npm run artifacts:verify:dev
 
 This compiles both circuits over BLS12-381 and regenerates the R1CS, WASM, proving key, verification key, and manifests. The repository's phase-2 beacon is deterministic for reproducible development builds.
 
-For production, use `npm run artifacts:import:production -- --source-dir <verified-export> --ptau <verified-transcript> --expected-ptau-sha256 <digest> --commit <full-commit> --network <testnet|mainnet> --import` with an independently verified external transcript. The importer never creates ceremony material or marks the manifest approved; a cryptographic signature remains mandatory, while independent review follows the deployment profile policy. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
+For production, use `npm run artifacts:import:production -- --source-dir <verified-export> --ptau <verified-transcript> --expected-ptau-sha256 <digest> --commit <full-commit> --network <testnet|mainnet> --circuits telegram_auth --import` with an independently verified external transcript. The `--circuits` allowlist must match the approved deployment profile; it prevents disabled experimental circuits from being imported accidentally. The importer never creates ceremony material or marks the manifest approved; a cryptographic signature remains mandatory, while independent review follows the deployment profile policy. After changing `telegram_auth.circom`, regenerate the TON verifier constants with `export-ton-verifier`; `npm test` fails if the embedded contract key is stale.
 
 ### Priva purchase artifact release gate
 
