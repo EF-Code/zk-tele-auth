@@ -11,3 +11,6 @@ build/**
 .release-evidence/**
 # Local implementation handoff; never include in commits or packages.
 LUNA_MAX_APP_INTEGRATION_HANDOFF.md
+# Handoff specifications are local-only and must never be committed.
+*HANDOFF*.md
+*handoff*.md
