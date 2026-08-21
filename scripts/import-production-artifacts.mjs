@@ -59,7 +59,15 @@ for (const circuit of circuits) {
   for (const filename of required) if (!fs.existsSync(path.join(source, filename))) throw new Error(`missing externally supplied ${circuit}/${filename}`);
   // Cryptographically bind the final zkey to the supplied phase-one file and
   // exact R1CS before any repository file is changed.
-  const verified = await snarkjs.zKey.verify(absolutePtau, path.join(source, `${circuit}.r1cs`), path.join(source, `${circuit}_final.zkey`));
+  // snarkjs 0.7.x exposes the complete Groth16 verification as
+  // verifyFromR1cs(r1cs, ptau, zkey); there is no zKey.verify alias in the
+  // ESM API. Keep the transcript and exact circuit ordering explicit here so
+  // an API change cannot silently verify the wrong inputs.
+  const verified = await snarkjs.zKey.verifyFromR1cs(
+    path.join(source, `${circuit}.r1cs`),
+    absolutePtau,
+    path.join(source, `${circuit}_final.zkey`),
+  );
   if (!verified) throw new Error(`snarkjs zkey verification failed: ${circuit}`);
   const exportedVkey = await snarkjs.zKey.exportVerificationKey(path.join(source, `${circuit}_final.zkey`));
   const suppliedVkey = JSON.parse(fs.readFileSync(path.join(source, `${circuit}_vkey.json`), 'utf8'));

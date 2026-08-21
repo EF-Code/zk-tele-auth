@@ -99,6 +99,7 @@
     "start:gateway": "node dist/gateway/main.js",
     "deploy:dry-run": "npm run build && node scripts/deploy-ton.mjs --network testnet --dry-run",
     "compile:ton": "node scripts/compile-ton-contracts.mjs",
+    "export-ton-verifier": "node scripts/export-ton-verifier.mjs",
     "deploy:verify-manifest": "node scripts/verify-ton-deployment.mjs",
     "setup:circuits": "node scripts/setup-circuits.cjs",
     "compile-circuits": "node scripts/setup-circuits.cjs"

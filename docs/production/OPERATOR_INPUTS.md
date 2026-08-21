@@ -2,6 +2,8 @@
 
 This file is intentionally a template. Do not fill it with guesses or secrets. The release preflight remains blocked until the operator supplies and reviews the deployment-specific values through the approved secret/configuration system.
 
+Public ceremony contributor labels may be pseudonymous for operational privacy. A label such as `REAL_OPERATOR_NAME` is not evidence of a legal identity or an independent review; retain any private mapping to the actual custodian in an access-controlled external evidence record, never in Git or this template.
+
 For this personal project, `docs/production/deployment-profile.json` explicitly sets `independentReviewRequired` to `false`. That makes the independent-review gate `not-applicable`; it does not approve ceremony artifacts, signatures, operator configuration, or network deployment, and it must be changed to `true` for any shared or commercial deployment. Priva's own composition gate remains separate and still requires its dedicated review record if Priva is enabled.
 
 The same personal stable profile sets `productionAttestationRequired` to `false`, which makes the external signed-attestation gate `not-applicable`. This is a self-managed release waiver, not a cryptographic approval: the production artifact manifest must still come from a genuine reviewed ceremony export, and the waiver is rejected for mainnet or Priva deployments.
