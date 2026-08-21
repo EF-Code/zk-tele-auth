@@ -195,6 +195,22 @@ try {
   command('development_artifacts', ['npm', 'run', 'artifacts:verify:dev']);
   command('ton_compilation', ['npm', 'run', 'compile:ton']);
   command('package_consumer', ['npm', 'run', 'package:consumer-smoke']);
+  // Keep the release gate at least as strict as the repository CI matrix.
+  // These checks are intentionally separate gates so the JSON report identifies
+  // the exact local contract that failed instead of collapsing everything into
+  // the broad `tests` result above.
+  command('public_exports', ['npm', 'run', 'test:exports']);
+  command('browser_client', ['npm', 'run', 'test:client']);
+  command('openapi_contract', ['npm', 'run', 'test:openapi']);
+  command('ton_consumer', ['npm', 'run', 'test:ton-consumer']);
+  command('mini_app_example', ['npm', 'run', 'test:examples']);
+  command('deployment_templates', ['npm', 'run', 'test:deployment-templates']);
+  command('handoff_exclusion', ['npm', 'run', 'check:handoff-exclusion']);
+  command('gateway_workers', ['npm', 'run', 'test:gateway-workers']);
+  command('gateway_load', ['npm', 'run', 'test:gateway-load']);
+  command('package_contents', ['npm', 'run', 'package:content-check']);
+  command('supply_chain_hooks', ['npm', 'run', 'sbom:package']);
+  command('diff_hygiene', ['git', 'diff', '--check']);
   command('deployment_tooling', [process.execPath, '--check', path.join(root, 'scripts', 'deploy-ton.mjs')]);
   command('audit', ['npm', 'audit', '--audit-level=high']);
   const dockerfilePath = path.join(root, 'Dockerfile');
