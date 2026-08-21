@@ -52,7 +52,7 @@ For repository development, clone the repository and run `npm ci` instead. Publi
 
 `npm test` runs real Groth16 proofs, adversarial issuer/policy/replay regressions, private-leaf Merkle membership tests, verifier-key synchronization, and Tolk compilation.
 
-Production work is tracked in [FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md](FULL_DEPLOYMENT_LUNA_MAX_HANDOFF.md). The repository includes a generalized artifact manifest, cryptographic attestation verifier, a composed native-TON Priva launchpad, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it is expected to remain non-zero until genuine ceremony, operator, independent-review, and testnet evidence exists.
+The repository includes a generalized artifact manifest, cryptographic attestation verifier, a composed native-TON Priva launchpad, gateway readiness checks, deterministic TON dry-run tooling, package/container checks, and a fail-closed release preflight. Run `npm run release:preflight`; it is expected to remain non-zero until genuine ceremony, operator, independent-review, and testnet evidence exists.
 
 Supply-chain hook behavior and the protected-release prerequisites are documented in [docs/supply-chain.md](docs/supply-chain.md).
 
