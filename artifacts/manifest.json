@@ -21,15 +21,15 @@
         "circuits/telegram_auth.circom": "37ef6317fa85936e7db69429ee748e7785184e6b065af52b81b26e6704528564",
         "artifacts/telegram_auth/telegram_auth.r1cs": "3b6c81c767792c45f310a8290b237c9287db325142181cecd58bcdffb00d29da",
         "artifacts/telegram_auth/telegram_auth.wasm": "3f2fae4712f02ffcf26f78a3cb193f915f28d43baa47de171c32055e5681a2bd",
-        "artifacts/telegram_auth/telegram_auth_final.zkey": "851a997955f29931242c507156b46956747dca399ff4d0d50ccd9d008693ed9d",
-        "artifacts/telegram_auth/telegram_auth_vkey.json": "cc1e1084f9d7fa39ed722c0a51e17b0c32c6e91bf37bfba8850c7f21c4637d9d",
+        "artifacts/telegram_auth/telegram_auth_final.zkey": "3bcdc8b9b6898edba8296cd24d11eb6d656ab152799af306038c86da6c406f09",
+        "artifacts/telegram_auth/telegram_auth_vkey.json": "1c8520ef898eef12a34152b65155925c311c4f8f62e1b70cefe2c51d5a3fb5d2",
         "artifacts/telegram_auth/telegram_auth.json": "e3ad952dbb4d9bcaa3437388b6d2fa3f9282528f63603ae003170b58462ccb98",
-        "contracts/zk_tele_auth_verifier.tolk": "08e53010b6539d58fb5814eac5904b1be39699380604d7d13428074d6b932e0d"
+        "contracts/zk_tele_auth_verifier.tolk": "dee73e5c80a0212ce8bb80d714a32c6c82d846f3707fddaede27c3ec96ae77c5"
       },
       "runtimeFiles": {
         "artifacts/telegram_auth/telegram_auth.wasm": "3f2fae4712f02ffcf26f78a3cb193f915f28d43baa47de171c32055e5681a2bd",
-        "artifacts/telegram_auth/telegram_auth_final.zkey": "851a997955f29931242c507156b46956747dca399ff4d0d50ccd9d008693ed9d",
-        "artifacts/telegram_auth/telegram_auth_vkey.json": "cc1e1084f9d7fa39ed722c0a51e17b0c32c6e91bf37bfba8850c7f21c4637d9d"
+        "artifacts/telegram_auth/telegram_auth_final.zkey": "3bcdc8b9b6898edba8296cd24d11eb6d656ab152799af306038c86da6c406f09",
+        "artifacts/telegram_auth/telegram_auth_vkey.json": "1c8520ef898eef12a34152b65155925c311c4f8f62e1b70cefe2c51d5a3fb5d2"
       }
     },
     "priva_purchase_auth": {
