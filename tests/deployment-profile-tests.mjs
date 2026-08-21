@@ -42,6 +42,12 @@ const incomplete = validateDeploymentProfile({ ...complete, status: 'operator-in
 assert.ok(incomplete.missing.includes('status'));
 assert.ok(incomplete.missing.includes('inventory'));
 
+const privaWithoutReview = validateDeploymentProfile({ ...complete, independentReviewRequired: false }, { candidateCommit: commit, requirePriva: true });
+assert.ok(privaWithoutReview.invalid.some((message) => message.includes('when Priva is enabled')));
+
+const mainnetWithoutReview = validateDeploymentProfile({ ...complete, network: 'mainnet', independentReviewRequired: false }, { candidateCommit: commit, requirePriva: true });
+assert.ok(mainnetWithoutReview.invalid.some((message) => message.includes('for mainnet')));
+
 const generic = validateDeploymentProfile({
   ...complete,
   enableExperimentalPriva: false,
