@@ -79,6 +79,7 @@
     "artifacts:manifest:check": "node scripts/check-artifact-manifest.mjs",
     "artifacts:verify:production": "node scripts/check-production-attestation.mjs",
     "artifacts:verify:dev": "node scripts/verify-development-artifacts.mjs",
+    "artifacts:verify": "node scripts/verify-artifact-integrity.mjs",
     "artifacts:import:production": "node scripts/import-production-artifacts.mjs",
     "release:preflight": "node scripts/release-preflight.mjs",
     "package:consumer-smoke": "npm run build && node tests/package-consumer-smoke.mjs",

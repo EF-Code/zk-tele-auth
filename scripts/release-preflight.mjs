@@ -196,7 +196,7 @@ try {
   command('build', ['npm', 'run', 'build']);
   command('tests', ['npm', 'test']);
   command('manifest', ['npm', 'run', 'artifacts:manifest:check']);
-  command('development_artifacts', ['npm', 'run', 'artifacts:verify:dev']);
+  command('artifact_integrity', ['npm', 'run', 'artifacts:verify']);
   command('ton_compilation', ['npm', 'run', 'compile:ton']);
   command('package_consumer', ['npm', 'run', 'package:consumer-smoke']);
   // Keep the release gate at least as strict as the repository CI matrix.

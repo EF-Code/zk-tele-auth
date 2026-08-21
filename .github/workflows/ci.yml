@@ -36,8 +36,8 @@ jobs:
         run: npm test
       - name: Artifact manifest check
         run: npm run artifacts:manifest:check
-      - name: Development artifact verification
-        run: npm run artifacts:verify:dev
+      - name: Artifact integrity verification
+        run: npm run artifacts:verify
       - name: Deterministic TON compilation
         run: npm run compile:ton
       - name: Package consumer smoke test

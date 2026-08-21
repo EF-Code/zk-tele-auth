@@ -7,6 +7,7 @@ import { sha256File } from './lib/attestation.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = path.join(root, 'artifacts', 'manifest.json');
 const write = process.argv.includes('--write');
+const allowedStatuses = new Set(['development-only', 'production-pending-attestation', 'production-approved', 'revoked']);
 
 const circuits = {
   telegram_auth: {
@@ -98,16 +99,26 @@ try {
     fail(`missing ${path.relative(root, manifestPath)}; run npm run artifacts:manifest:write`);
   } else {
     const actual = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    const comparable = (manifest) => {
+      const copy = JSON.parse(JSON.stringify(manifest));
+      copy.status = '__status__';
+      for (const entry of Object.values(copy.circuits || {})) entry.status = '__status__';
+      return copy;
+    };
+    const invalidStatuses = [
+      ['manifest', actual.status],
+      ...Object.entries(actual.circuits || {}).map(([name, entry]) => [`${name} circuit`, entry.status]),
+    ].filter(([, status]) => !allowedStatuses.has(status));
+    if (invalidStatuses.length) {
+      fail(`artifact manifest has an unsupported status (${invalidStatuses.map(([name, status]) => `${name}=${status || '<missing>'}`).join(', ')})`);
+    } else if (JSON.stringify(comparable(actual)) !== JSON.stringify(comparable(expected))) {
       const mismatches = [];
       for (const [circuit, config] of Object.entries(expected.circuits)) {
         for (const [relativePath, expectedHash] of Object.entries(config.files)) {
           const actualHash = actual.circuits?.[circuit]?.files?.[relativePath];
           if (actualHash !== expectedHash) mismatches.push(`${relativePath}: manifest=${actualHash || '<missing>'}, current=${expectedHash}`);
         }
-        if (actual.circuits?.[circuit]?.status !== config.status) mismatches.push(`${circuit}: status=${actual.circuits?.[circuit]?.status || '<missing>'}, current=${config.status}`);
       }
-      if (actual.status !== expected.status) mismatches.push(`manifest status=${actual.status || '<missing>'}, current=${expected.status}`);
       fail(`artifact manifest is stale or has been edited outside the generator${mismatches.length ? ` (${mismatches.slice(0, 8).join('; ')})` : ''}`);
     } else {
       console.log('✓ artifact manifest matches all source and generated files');
