@@ -16,7 +16,7 @@
     "artifacts/priva_purchase_auth/priva_purchase_auth_vkey.json": "bde50de738c19ff675d19d09e611aae50247e1658df798b520313acc076466ae",
     "contracts/priva_purchase_auth_verifier.tolk": "75938e9ddb0992727eca638e8667d5fda5888a8b37462ef32dc9fee29ed527c9",
     "contracts/priva_purchase_auth_verifier_wrapper.tolk": "33f539ee0a276e293fe496378bd81388490c3155f9d217fb0bd76e239f2a62c1",
-    "contracts/priva_purchase_launchpad.tolk": "48dbc04e754390f1715a15a5f272321b6e95640e64fb9550d3599b5a182af331"
+    "contracts/priva_purchase_launchpad.tolk": "528d9fbbe95d04a30b403227c40e78e5aa207e50e9f16a824721854db1aa0ea8"
   },
   "productionRequirements": [
     "A reviewed public-ceremony or independently operated multi-party ceremony transcript and verification record",
