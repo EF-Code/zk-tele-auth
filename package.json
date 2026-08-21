@@ -88,6 +88,7 @@
     "test:examples": "npm run build && node tests/example-tests.mjs",
     "test:exports": "npm run build && node tests/exports-tests.mjs",
     "test:deployment-templates": "node scripts/validate-deployment-templates.mjs",
+    "check:handoff-exclusion": "node scripts/check-handoff-exclusion.mjs",
     "test:gateway-workers": "npm run build && node tests/gateway-workers-tests.mjs",
     "test:gateway-load": "npm run build && node tests/gateway-load-tests.mjs",
     "package:content-check": "npm run build && node scripts/package-content-check.mjs",
